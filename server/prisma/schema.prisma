@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  SUPER_ADMIN
+  ADMIN
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  PENDING
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  ON_LEAVE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  EMERGENCY
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+model Role {
+  id          String      @id @default(cuid())
+  name        RoleName    @unique
+  description String?
+  users       User[]
+  permissions Permission[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  roles       Role[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id                  String        @id @default(cuid())
+  username            String        @unique
+  email               String        @unique
+  passwordHash        String
+  status              UserStatus    @default(ACTIVE)
+  isLocked            Boolean       @default(false)
+  lastLogin           DateTime?
+  forcePasswordChange Boolean       @default(false)
+  employeeId          String?       @unique
+  employee            Employee?     @relation(fields: [employeeId], references: [id])
+  roleId              String
+  role                Role          @relation(fields: [roleId], references: [id])
+  loginHistory        LoginHistory[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model Department {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  managerId   String?
+  manager     Employee?  @relation("DepartmentManager", fields: [managerId], references: [id])
+  employees   Employee[] @relation("DepartmentEmployees")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Employee {
+  id              String        @id @default(cuid())
+  employeeNumber  String        @unique
+  fullName        String
+  nationalId      String?       @unique
+  phone           String?
+  email           String        @unique
+  address         String?
+  departmentId    String?
+  department      Department?   @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  managerId       String?
+  manager         Employee?     @relation("ManagerEmployees", fields: [managerId], references: [id], onDelete: SetNull)
+  directReports   Employee[]    @relation("ManagerEmployees")
+  jobTitle        String?
+  salary          Decimal       @db.Decimal(10, 2)
+  hireDate        DateTime
+  shiftStart      String?
+  shiftEnd        String?
+  status          EmployeeStatus @default(ACTIVE)
+  photoUrl        String?
+  user            User?
+  attendance      Attendance[]
+  leaveRequests   LeaveRequest[]
+  payrolls        Payroll[]
+  notifications   Notification[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  Department      Department[]  @relation("DepartmentManager")
+}
+
+model Attendance {
+  id                     String            @id @default(cuid())
+  employeeId             String
+  employee               Employee          @relation(fields: [employeeId], references: [id])
+  date                   DateTime          @db.Date
+  checkIn                DateTime?
+  checkOut               DateTime?
+  workingHours           Int?
+  overtimeMinutes        Int?
+  lateMinutes            Int?
+  earlyDepartureMinutes  Int?
+  status                AttendanceStatus
+  ipAddress             String?
+  deviceInfo            String?
+  gpsLatitude           Float?
+  gpsLongitude          Float?
+  locationVerified      Boolean           @default(false)
+  locationRadiusMeters  Int               @default(100)
+  qrCode               String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model LeaveRequest {
+  id            String       @id @default(cuid())
+  employeeId    String
+  employee      Employee     @relation(fields: [employeeId], references: [id])
+  managerId     String?
+  type          LeaveType
+  startDate     DateTime     @db.Date
+  endDate       DateTime     @db.Date
+  days          Int
+  reason        String
+  status        LeaveStatus  @default(PENDING)
+  approvedById  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Payroll {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  month         String
+  year          Int
+  basicSalary   Decimal  @db.Decimal(10, 2)
+  presentDays   Int      @default(0)
+  absentDays    Int      @default(0)
+  overtimeHours Decimal  @default(0) @db.Decimal(10, 2)
+  bonuses       Decimal  @default(0) @db.Decimal(10, 2)
+  lateDeductions Decimal @default(0) @db.Decimal(10, 2)
+  netSalary     Decimal  @db.Decimal(10, 2)
+  paid          Boolean  @default(false)
+  generatedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id])
+  employeeId String?
+  employee  Employee?        @relation(fields: [employeeId], references: [id])
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+model LoginHistory {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  loginTime  DateTime  @default(now())
+  logoutTime DateTime?
+  device     String?
+  browser    String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  ipAddress String?
+  device    String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Shift {
+  id          String   @id @default(cuid())
+  name        String
+  startTime   String
+  endTime     String
+  description String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
