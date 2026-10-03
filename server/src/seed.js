@@ -1,170 +1,159 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 
-const roles = [
+const defaultRoles = [
   { name: 'SUPER_ADMIN', description: 'Full system access' },
   { name: 'ADMIN', description: 'Administrative access' },
-  { name: 'EMPLOYEE', description: 'Employee self-service access' },
+  { name: 'EMPLOYEE', description: 'Employee self service' }
 ];
 
-const permissions = [
-  'manage_users',
-  'manage_employees',
-  'manage_departments',
-  'manage_attendance',
-  'manage_leave',
-  'manage_payroll',
-  'view_dashboard',
-  'manage_reports',
-  'manage_settings',
-  'api_access',
-  'employee_self_service',
+const defaultDepartments = [
+  'Human Resources',
+  'Finance',
+  'Operations',
+  'Sales',
+  'IT',
+  'Management'
 ];
 
-async function ensureRolesAndPermissions() {
-  for (const role of roles) {
+const employeeNames = [
+  'Mohammed Al-Harbi',
+  'Fatima Al-Zahrani',
+  'Ali Ahmed',
+  'Noura Saleh',
+  'Khalid Omar',
+  'Lina Hassan',
+  'Omar Faris',
+  'Salma Youssef',
+  'Hassan Ibrahim',
+  'Rania Mansour',
+  'Yousef Al-Mansoor',
+  'Sara Salem',
+  'Abdullah Nabil',
+  'Maha Khaled',
+  'Ammar Rahman',
+  'Noor Hamad',
+  'Tariq Bahar',
+  'Layla Nasser',
+  'Faisal Qureshi',
+  'Dana Ismail',
+  'Ziad Sami',
+  'Huda Fawzi',
+  'Samir Ali',
+  'Reem Hadi',
+  'Anas Sayed'
+];
+
+async function seedRoles() {
+  for (const role of defaultRoles) {
     await prisma.role.upsert({
       where: { name: role.name },
       update: { description: role.description },
-      create: { name: role.name, description: role.description },
+      create: { name: role.name, description: role.description }
     });
-  }
-
-  for (const permission of permissions) {
-    await prisma.permission.upsert({
-      where: { name: permission },
-      update: {},
-      create: { name: permission, description: permission },
-    });
-  }
-}
-
-async function createDefaultUsers() {
-  const defaultUsers = [
-    {
-      username: 'superadmin',
-      email: 'superadmin@company.com',
-      password: 'SuperAdmin@123',
-      roleName: 'SUPER_ADMIN',
-      fullName: 'Super Admin',
-    },
-    {
-      username: 'admin',
-      email: 'admin@company.com',
-      password: 'Admin@123',
-      roleName: 'ADMIN',
-      fullName: 'Admin User',
-    },
-    {
-      username: 'employee',
-      email: 'employee@company.com',
-      password: 'Employee@123',
-      roleName: 'EMPLOYEE',
-      fullName: 'Employee User',
-    },
-  ];
-
-  for (const item of defaultUsers) {
-    const role = await prisma.role.findUnique({ where: { name: item.roleName } });
-    const exists = await prisma.user.findUnique({ where: { email: item.email } });
-
-    if (!exists) {
-      const passwordHash = await bcrypt.hash(item.password, 10);
-      const employee = await prisma.employee.upsert({
-        where: { email: item.email },
-        create: {
-          employeeNumber: `EMP-${item.roleName.toLowerCase()}`,
-          fullName: item.fullName,
-          email: item.email,
-          phone: '+966500000000',
-          salary: 12000,
-          hireDate: new Date('2020-01-01'),
-          shiftStart: '08:00',
-          shiftEnd: '17:00',
-          status: 'ACTIVE',
-          jobTitle: item.roleName === 'SUPER_ADMIN' ? 'Super Administrator' : item.roleName === 'ADMIN' ? 'System Administrator' : 'Employee',
-        },
-        update: {},
-      });
-
-      await prisma.user.create({
-        data: {
-          username: item.username,
-          email: item.email,
-          passwordHash,
-          roleId: role.id,
-          employeeId: employee.id,
-          status: 'ACTIVE',
-          forcePasswordChange: false,
-        },
-      });
-    }
   }
 }
 
 async function seedDepartments() {
-  const departments = ['Human Resources', 'Finance', 'Operations', 'Sales', 'IT', 'Management'];
-  for (const department of departments) {
+  for (const name of defaultDepartments) {
     await prisma.department.upsert({
-      where: { name: department },
+      where: { name },
       update: {},
-      create: { name: department },
+      create: { name }
+    });
+  }
+}
+
+async function seedDefaults() {
+  const roleMap = await prisma.role.findMany();
+  const roleByName = Object.fromEntries(roleMap.map((role) => [role.name, role]));
+
+  const defaultUsers = [
+    { email: 'superadmin@company.com', username: 'superadmin', password: 'SuperAdmin@123', role: 'SUPER_ADMIN', fullName: 'Super Admin' },
+    { email: 'admin@company.com', username: 'admin', password: 'Admin@123', role: 'ADMIN', fullName: 'Admin User' },
+    { email: 'employee@company.com', username: 'employee', password: 'Employee@123', role: 'EMPLOYEE', fullName: 'Employee User' }
+  ];
+
+  for (const user of defaultUsers) {
+    const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
+    if (existingUser) continue;
+
+    const employee = await prisma.employee.upsert({
+      where: { email: user.email },
+      update: {},
+      create: {
+        employeeNumber: `EMP-${user.username.toUpperCase()}`,
+        fullName: user.fullName,
+        email: user.email,
+        phone: '+966500000000',
+        salary: user.role === 'SUPER_ADMIN' ? 20000 : user.role === 'ADMIN' ? 15000 : 6500,
+        hireDate: new Date('2020-01-01'),
+        shiftStart: '08:00',
+        shiftEnd: '17:00',
+        jobTitle: user.role === 'SUPER_ADMIN' ? 'Super Administrator' : user.role === 'ADMIN' ? 'System Administrator' : 'Employee',
+        status: 'ACTIVE',
+        departmentId: (await prisma.department.findFirst({ where: { name: 'Management' } })).id
+      }
+    });
+
+    const passwordHash = await bcrypt.hash(user.password, 10);
+    await prisma.user.create({
+      data: {
+        username: user.username,
+        email: user.email,
+        passwordHash,
+        roleId: roleByName[user.role].id,
+        employeeId: employee.id,
+        status: 'ACTIVE'
+      }
     });
   }
 }
 
 async function seedEmployees() {
-  const employeeNames = [
-    'Mohammed Al-Harbi', 'Fatima Al-Zahrani', 'Ali Ahmed', 'Noura Saleh', 'Khalid Omar',
-    'Lina Hassan', 'Omar Faris', 'Salma Youssef', 'Hassan Ibrahim', 'Rania Mansour',
-    'Yousef Al-Mansoor', 'Sara Salem', 'Abdullah Nabil', 'Maha Khaled', 'Ammar Rahman',
-    'Noor Hamad', 'Tariq Bahar', 'Layla Nasser', 'Faisal Qureshi', 'Dana Ismail',
-    'Ziad Sami', 'Huda Fawzi', 'Samir Ali', 'Reem Hadi', 'Anas Sayed'
-  ];
-
   const departments = await prisma.department.findMany();
+  const employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
 
-  for (let index = 0; index < employeeNames.length; index += 1) {
-    const name = employeeNames[index];
-    const dep = departments[index % departments.length];
+  for (let i = 0; i < employeeNames.length; i += 1) {
+    const name = employeeNames[i];
     const email = `${name.toLowerCase().replace(/\s+/g, '.')}@company.com`;
+    const dep = departments[i % departments.length];
 
-    const employee = await prisma.employee.upsert({
-      where: { email },
-      update: {},
-      create: {
-        employeeNumber: `EMP-${String(index + 1).padStart(4, '0')}`,
+    const existing = await prisma.employee.findUnique({ where: { email } });
+    if (existing) continue;
+
+    const employee = await prisma.employee.create({
+      data: {
+        employeeNumber: `EMP-${String(i + 1).padStart(4, '0')}`,
         fullName: name,
-        nationalId: `100${String(index + 100000000 + 1).slice(0, 9)}`,
-        phone: `+9665${String(10000000 + index).slice(0, 8)}`,
+        nationalId: `100${String(i + 100000000)}`,
+        phone: `+966500${String(i + 100000).padStart(6, '0')}`,
         email,
-        address: `مدينة الرياض - حي ${index + 1}`,
+        address: `الرياض - حي ${i + 1}`,
         departmentId: dep.id,
-        jobTitle: ['HR Specialist', 'Accountant', 'Operations Coordinator', 'Sales Representative', 'Software Engineer', 'Manager'][index % 6],
-        salary: 3500 + (index * 250),
-        hireDate: new Date(2021, index % 12, (index % 28) + 1),
+        jobTitle: ['HR Specialist', 'Accountant', 'Operations Coordinator', 'Sales Representative', 'Software Engineer', 'Manager'][i % 6],
+        salary: 3500 + i * 220,
+        hireDate: new Date(2021, (i % 12), (i % 28) + 1),
         shiftStart: '08:00',
         shiftEnd: '17:00',
-        status: index % 5 === 0 ? 'ON_LEAVE' : 'ACTIVE',
-      },
+        status: i % 5 === 0 ? 'ON_LEAVE' : 'ACTIVE',
+      }
     });
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      const role = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
+    const userExists = await prisma.user.findUnique({ where: { email } });
+    if (!userExists) {
       const passwordHash = await bcrypt.hash('Employee@123', 10);
       await prisma.user.create({
         data: {
-          username: `emp${String(index + 1).padStart(3, '0')}`,
+          username: `emp${String(i + 1).padStart(3, '0')}`,
           email,
           passwordHash,
-          roleId: role.id,
+          roleId: employeeRole.id,
           employeeId: employee.id,
-          status: 'ACTIVE',
-        },
+          status: 'ACTIVE'
+        }
       });
     }
   }
@@ -174,66 +163,64 @@ async function seedSettings() {
   const settings = [
     { key: 'company_name', value: 'نظام الحضور والانصراف', description: 'Company name' },
     { key: 'attendance_radius_meters', value: '120', description: 'GPS attendance radius in meters' },
-    { key: 'timezone', value: 'Asia/Riyadh', description: 'Default timezone' },
-    { key: 'late_threshold_minutes', value: '15', description: 'Late threshold' },
     { key: 'default_shift_start', value: '08:00', description: 'Default shift start' },
     { key: 'default_shift_end', value: '17:00', description: 'Default shift end' },
+    { key: 'late_threshold_minutes', value: '15', description: 'Late threshold' },
+    { key: 'timezone', value: 'Asia/Riyadh', description: 'Timezone' }
   ];
 
-  for (const item of settings) {
+  for (const setting of settings) {
     await prisma.setting.upsert({
-      where: { key: item.key },
-      update: { value: item.value, description: item.description },
-      create: item,
+      where: { key: setting.key },
+      update: { value: setting.value },
+      create: setting
     });
   }
 }
 
-async function seedSampleAttendance() {
-  const employees = await prisma.employee.findMany({ take: 10 });
+async function seedAttendance() {
+  const employees = await prisma.employee.findMany({ take: 12 });
   const today = new Date();
 
-  for (const employee of employees) {
+  for (let i = 0; i < employees.length; i += 1) {
+    const employee = employees[i];
+    const attendanceDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    const status = i % 3 === 0 ? 'LATE' : i % 2 === 0 ? 'PRESENT' : 'ABSENT';
+
     await prisma.attendance.upsert({
-      where: { id: `sample-${employee.id}` },
+      where: { id: `seed-${employee.id}-${attendanceDate.toISOString()}` },
       update: {},
       create: {
-        id: `sample-${employee.id}`,
+        id: `seed-${employee.id}-${attendanceDate.toISOString()}`,
         employeeId: employee.id,
-        date: today,
-        checkIn: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 15),
-        checkOut: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 16, 40),
+        date: attendanceDate,
+        checkIn: new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate(), 8 + (i % 2), 10),
+        checkOut: new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate(), 17, 0),
         workingHours: 8,
-        overtimeMinutes: 30,
-        lateMinutes: 15,
-        earlyDepartureMinutes: 0,
-        status: 'LATE',
+        lateMinutes: status === 'LATE' ? 15 : 0,
+        status,
         deviceInfo: 'Chrome on Windows',
-        ipAddress: '127.0.0.1',
-      },
+        ipAddress: '127.0.0.1'
+      }
     });
   }
 }
 
 async function main() {
-  await ensureRolesAndPermissions();
+  await seedRoles();
   await seedDepartments();
+  await seedDefaults();
   await seedEmployees();
-  await createDefaultUsers();
   await seedSettings();
-  await seedSampleAttendance();
-  console.log('Seed completed successfully');
+  await seedAttendance();
+  console.log('Database seed completed successfully.');
 }
 
 main()
-  .catch((error) => {
-    console.error('Seed failed:', error);
+  .catch((e) => {
+    console.error('Seed failed:', e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-module.exports = {
-  issueToken: (user) => jwt.sign({ userId: user.id, role: user.roleName }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' }),
-};

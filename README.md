@@ -1,37 +1,36 @@
 # attendance-payroll-system
 
-Complete Enterprise HR, Attendance, Payroll, Leave Management and User Management System - Arabic Language Support with RTL
+نظام متكامل لإدارة الحضور والانصراف، الرواتب، الإجازات، الموظفين، المستخدمين، التقارير والإعدادات.
 
-## Features
-- React 18 + Vite + Tailwind CSS frontend
-- Node.js + Express.js backend
-- PostgreSQL + Prisma ORM
-- JWT authentication with RBAC
-- Arabic (RTL) responsive UI
-- Attendance, leave, payroll, employees, departments, users, reports, notifications
-- Seeded data for 25 employees and default accounts
+## Stack
+- Frontend: React + Vite + Tailwind CSS
+- Backend: Node.js + Express.js
+- Database: PostgreSQL + Prisma ORM
+- Auth: JWT + RBAC
 
-## Setup
+## Default accounts
+- Super Admin: superadmin@company.com / SuperAdmin@123
+- Admin: admin@company.com / Admin@123
+- Employee: employee@company.com / Employee@123
+
+## Install
 ```bash
 npm install
 npm run dev
 ```
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000/api
-
-## Default credentials
-- Super Admin: superadmin@company.com / SuperAdmin@123
-- Admin: admin@company.com / Admin@123
-- Employee: employee@company.com / Employee@123
-
-## Production notes
-- Copy `.env.example` to `.env` in `server` folder
-- Configure PostgreSQL connection string
-- Run Prisma migration or db push:
+## Backend setup
 ```bash
 cd server
-npm run db:push
-npm run generate
-npm run seed
+cp .env.example .env
+npx prisma generate
+npx prisma db push
+node src/seed.js
 ```
+
+## Application URLs
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5000
+
+## Notes
+The app is built to work in Arabic RTL mode with responsive UI, dark mode support, protected routes and role-based access control.
