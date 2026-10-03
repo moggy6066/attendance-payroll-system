@@ -7,6 +7,14 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('./middleware/auth');
 
+const employeeRoutes = require('./routes/employeeRoutes');
+const userRoutes = require('./routes/userRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
+const payrollRoutes = require('./routes/payrollRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+
 dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
@@ -77,17 +85,13 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/users', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
-  try {
-    const users = await prisma.user.findMany({
-      include: { role: true, employee: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    return res.json(users);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load users', error: error.message });
-  }
-});
+app.use('/api/employees', employeeRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leave-requests', leaveRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
   try {
@@ -112,87 +116,6 @@ app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN'
     });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to load dashboard summary', error: error.message });
-  }
-});
-
-app.get('/api/employees', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
-  try {
-    const employees = await prisma.employee.findMany({
-      include: { department: true, manager: true, user: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    return res.json(employees);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load employees', error: error.message });
-  }
-});
-
-app.get('/api/departments', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
-  try {
-    const departments = await prisma.department.findMany({
-      include: { employees: true },
-      orderBy: { name: 'asc' }
-    });
-    return res.json(departments);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load departments', error: error.message });
-  }
-});
-
-app.get('/api/attendance', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
-  try {
-    const attendance = await prisma.attendance.findMany({
-      include: { employee: true },
-      orderBy: { date: 'desc' },
-      take: 30
-    });
-    return res.json(attendance);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load attendance data', error: error.message });
-  }
-});
-
-app.get('/api/leave-requests', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
-  try {
-    const leaveRequests = await prisma.leaveRequest.findMany({
-      include: { employee: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    return res.json(leaveRequests);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load leave requests', error: error.message });
-  }
-});
-
-app.get('/api/payroll', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
-  try {
-    const payroll = await prisma.payroll.findMany({
-      include: { employee: true },
-      orderBy: { generatedAt: 'desc' }
-    });
-    return res.json(payroll);
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load payroll', error: error.message });
-  }
-});
-
-app.get('/api/reports/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
-  try {
-    const [present, late, absent, onLeave, pendingLeave, approvedLeave] = await Promise.all([
-      prisma.attendance.count({ where: { status: 'PRESENT' } }),
-      prisma.attendance.count({ where: { status: 'LATE' } }),
-      prisma.attendance.count({ where: { status: 'ABSENT' } }),
-      prisma.attendance.count({ where: { status: 'ON_LEAVE' } }),
-      prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
-      prisma.leaveRequest.count({ where: { status: 'APPROVED' } })
-    ]);
-
-    return res.json({
-      attendanceByStatus: { present: present, late: late, absent: absent, onLeave: onLeave },
-      leaveStatus: { pending: pendingLeave, approved: approvedLeave }
-    });
-  } catch (error) {
-    return res.status(500).json({ message: 'Unable to load reports', error: error.message });
   }
 });
 

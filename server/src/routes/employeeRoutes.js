@@ -152,6 +152,15 @@ router.put('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req,
       return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
     }
 
+    const existingEmployee = await prisma.employee.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
+    });
+
+    if (!existingEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
     const updateData = { ...validation.data };
     if (updateData.hireDate) {
       updateData.hireDate = new Date(updateData.hireDate);
@@ -163,10 +172,10 @@ router.put('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req,
       include: { department: true, manager: true }
     });
 
-    if (employee.user && updateData.fullName) {
+    if (existingEmployee.user && updateData.email) {
       await prisma.user.update({
-        where: { id: employee.user.id },
-        data: { email: updateData.email || employee.email }
+        where: { id: existingEmployee.user.id },
+        data: { email: updateData.email }
       });
     }
 
@@ -187,7 +196,16 @@ router.put('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req,
 
 router.delete('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
-    const employee = await prisma.employee.update({
+    const employee = await prisma.employee.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
+    });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    await prisma.employee.update({
       where: { id: req.params.id },
       data: { status: 'TERMINATED' }
     });
