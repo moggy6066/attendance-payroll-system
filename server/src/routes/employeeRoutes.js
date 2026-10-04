@@ -17,15 +17,20 @@ const createEmployeeSchema = z.object({
   departmentId: z.string().optional(),
   managerId: z.string().optional(),
   jobTitle: z.string(),
-  salary: z.number().min(0),
-  hireDate: z.string().datetime(),
-  shiftStart: z.string(),
-  shiftEnd: z.string()
+  salary: z.coerce.number().min(0),
+  hireDate: z.string().min(10),
+  shiftStart: z.string().regex(/^\d{1,2}:\d{2}$/).default('08:00'),
+  shiftEnd: z.string().regex(/^\d{1,2}:\d{2}$/).default('17:00'),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']).optional()
 });
+
+const safeUser = { select: { id: true, username: true, email: true, status: true, lastLogin: true } };
+const emptyToUndefined = (obj) =>
+  Object.fromEntries(Object.entries(obj || {}).map(([k, v]) => [k, v === '' || v === null ? undefined : v]));
 
 const updateEmployeeSchema = createEmployeeSchema.partial();
 
-router.get('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
+router.get('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
     const { search, departmentId, status } = req.query;
     const filters = {};
@@ -43,7 +48,7 @@ router.get('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), as
 
     const employees = await prisma.employee.findMany({
       where: filters,
-      include: { department: true, manager: true, user: true },
+      include: { department: true, manager: { select: { id: true, fullName: true } }, user: safeUser },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -55,12 +60,15 @@ router.get('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), as
 
 router.get('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
   try {
+    if (req.user.role === 'EMPLOYEE' && req.params.id !== req.user.employeeId) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const employee = await prisma.employee.findUnique({
       where: { id: req.params.id },
       include: {
         department: true,
-        manager: true,
-        directReports: true,
+        manager: { select: { id: true, fullName: true } },
+        directReports: { select: { id: true, fullName: true, jobTitle: true } },
         user: { select: { id: true, username: true, email: true, status: true, lastLogin: true } },
         attendance: { orderBy: { date: 'desc' }, take: 10 },
         leaveRequests: { orderBy: { createdAt: 'desc' }, take: 10 }
@@ -77,17 +85,23 @@ router.get('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']),
 
 router.post('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
-    const validation = createEmployeeSchema.safeParse(req.body);
+    const validation = createEmployeeSchema.safeParse(emptyToUndefined(req.body));
     if (!validation.success) {
       return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
     }
 
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { email: validation.data.email }
-    });
+    const hire = new Date(validation.data.hireDate);
+    if (Number.isNaN(hire.getTime())) return res.status(400).json({ message: 'Invalid hire date' });
 
-    if (existingEmployee) {
-      return res.status(409).json({ message: 'Employee with this email already exists' });
+    const duplicate = await prisma.employee.findFirst({
+      where: { OR: [{ email: validation.data.email }, { employeeNumber: validation.data.employeeNumber }] }
+    });
+    if (duplicate) {
+      return res.status(409).json({ message: 'Employee with this email or number already exists' });
+    }
+    const userWithEmail = await prisma.user.findUnique({ where: { email: validation.data.email.toLowerCase() } });
+    if (userWithEmail) {
+      return res.status(409).json({ message: 'A user account with this email already exists' });
     }
 
     const employee = await prisma.employee.create({
@@ -102,12 +116,12 @@ router.post('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, r
         managerId: validation.data.managerId,
         jobTitle: validation.data.jobTitle,
         salary: validation.data.salary,
-        hireDate: new Date(validation.data.hireDate),
+        hireDate: hire,
         shiftStart: validation.data.shiftStart,
         shiftEnd: validation.data.shiftEnd,
         status: 'ACTIVE'
       },
-      include: { department: true, manager: true }
+      include: { department: true, manager: { select: { id: true, fullName: true } } }
     });
 
     const role = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
@@ -117,7 +131,7 @@ router.post('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, r
     const user = await prisma.user.create({
       data: {
         username: `${validation.data.fullName.toLowerCase().replace(/\s+/g, '.')}.${employee.id.slice(0, 5)}`,
-        email: validation.data.email,
+        email: validation.data.email.toLowerCase(),
         passwordHash,
         roleId: role.id,
         employeeId: employee.id,
@@ -147,7 +161,7 @@ router.post('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, r
 
 router.put('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
-    const validation = updateEmployeeSchema.safeParse(req.body);
+    const validation = updateEmployeeSchema.safeParse(emptyToUndefined(req.body));
     if (!validation.success) {
       return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
     }
@@ -169,13 +183,13 @@ router.put('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req,
     const employee = await prisma.employee.update({
       where: { id: req.params.id },
       data: updateData,
-      include: { department: true, manager: true }
+      include: { department: true, manager: { select: { id: true, fullName: true } } }
     });
 
     if (existingEmployee.user && updateData.email) {
       await prisma.user.update({
         where: { id: existingEmployee.user.id },
-        data: { email: updateData.email }
+        data: { email: updateData.email.toLowerCase() }
       });
     }
 
