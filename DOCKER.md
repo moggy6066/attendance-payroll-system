@@ -139,3 +139,65 @@ Note: Docker publishes ports through its own iptables rules, bypassing ufw — t
 Install Tailscale on the server and on each user's phone/laptop, keep `APP_BIND=0.0.0.0`,
 block 8080 in the cloud firewall, and open `http://<server-tailscale-ip>:8080`
 (traffic is encrypted by Tailscale).
+
+## Windows PC inside the company network (Docker Desktop)
+
+Run in **PowerShell** from the repository folder. Scripts: `scripts\windows\`.
+
+### Upgrade an existing installation
+```powershell
+# 0. backup while the OLD stack still runs
+powershell -ExecutionPolicy Bypass -File scripts\windows\backup.ps1
+git pull
+# 1. .env: new JWT secret, LAN address, keeps the old DB password ("postgres")
+powershell -ExecutionPolicy Bypass -File scripts\windows\setup-env.ps1 -ExistingDatabase
+# 2. new images, database only
+docker compose down
+docker compose build
+docker compose up -d postgres
+# 3. duplicate attendance check
+docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates
+#    only if duplicates were found:
+docker compose run --rm -e DB_PUSH=false backend npm run fix-duplicates
+docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates
+docker compose run --rm -e DB_PUSH=false backend npx prisma db push --skip-generate --accept-data-loss
+# 4. start
+docker compose up -d
+docker compose logs -f backend      # "Server listening" = OK (Ctrl+C to leave)
+```
+New install: same, but run `setup-env.ps1` without `-ExistingDatabase`, set `RUN_SEED=true` in
+`.env` for the first `docker compose up -d --build`, then set it back to `false`.
+
+### Network
+- `ipconfig` → the IPv4 address of the Wi-Fi/Ethernet adapter (e.g. `192.168.1.50`).
+  Employees open `http://192.168.1.50:8080`.
+- Reserve that IP for this PC in the router (DHCP reservation), otherwise it can change.
+  If it changes: rerun `setup-env.ps1` (keeps the secrets) and `docker compose up -d`.
+- Windows Firewall, **Administrator** PowerShell — allow 8080 on Private networks only:
+  ```powershell
+  Get-NetConnectionProfile            # company network must be "Private"
+  # Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private
+  New-NetFirewallRule -DisplayName "HR Attendance 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private
+  ```
+- Do **not** add port forwarding for 8080 on the router (no HTTPS on the LAN setup).
+
+### Keep it running
+- Containers use `restart: unless-stopped`; they come back when Docker Desktop starts.
+- Docker Desktop → Settings → General → **Start Docker Desktop when you sign in**.
+- Windows logs a user in automatically only if configured; after a reboot someone must sign in.
+- Power settings: **Sleep = Never** — while the PC sleeps nobody can check in.
+
+### Daily backup (Task Scheduler)
+```powershell
+$s = (Resolve-Path scripts\windows\backup.ps1).Path
+schtasks /Create /TN "HR Attendance Backup" /SC DAILY /ST 17:30 /TR "powershell -NoProfile -ExecutionPolicy Bypass -File `"$s`""
+schtasks /Run /TN "HR Attendance Backup"     # test now, then check backups\backup.log
+```
+Backups older than 30 days are deleted. Copy the `backups` folder to a USB disk or cloud drive
+regularly — a backup on the same disk does not survive a disk failure.
+
+Restore (replaces current data):
+```powershell
+docker compose cp backups\hr-YYYY-MM-DD_HHmm.sql.gz postgres:/tmp/restore.sql.gz
+docker compose exec -T postgres sh -c "gunzip -c /tmp/restore.sql.gz | psql -U postgres -d hr_attendance_db"
+```
