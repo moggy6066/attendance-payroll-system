@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
@@ -6,172 +7,134 @@ const { z } = require('zod');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const checkInOutSchema = z.object({
-  employeeId: z.string(),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-  qrCode: z.string().optional()
+const ROLES = ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'];
+const STATUSES = ['ACTIVE', 'INACTIVE', 'LOCKED', 'PENDING'];
+
+const publicUser = {
+  id: true,
+  username: true,
+  email: true,
+  status: true,
+  lastLogin: true,
+  forcePasswordChange: true,
+  employeeId: true,
+  createdAt: true,
+  updatedAt: true,
+  role: { select: { name: true } },
+  employee: { select: { id: true, fullName: true, employeeNumber: true } }
+};
+
+const flatten = (u) => (u ? { ...u, role: u.role?.name } : u);
+
+const createSchema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(ROLES).default('EMPLOYEE'),
+  employeeId: z.string().optional().nullable()
 });
 
-router.post('/check-in', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+const updateSchema = z.object({
+  username: z.string().min(3).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(8).optional(),
+  role: z.enum(ROLES).optional(),
+  status: z.string().optional(),
+  employeeId: z.string().optional().nullable()
+});
+
+async function roleIdFor(name) {
+  const role = await prisma.role.findUnique({ where: { name } });
+  if (!role) throw Object.assign(new Error(`Role ${name} not found`), { status: 400 });
+  return role.id;
+}
+
+// List users
+router.get('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
-    const validation = checkInOutSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const existingAttendance = await prisma.attendance.findFirst({
-      where: {
-        employeeId: validation.data.employeeId,
-        date: today
-      }
-    });
-
-    if (existingAttendance?.checkIn) {
-      return res.status(400).json({ message: 'Already checked in today' });
-    }
-
-    const shiftStart = new Date();
-    shiftStart.setHours(8, 0, 0, 0);
-
-    const now = new Date();
-    const lateMinutes = now > shiftStart ? Math.floor((now - shiftStart) / 60000) : 0;
-    const status = lateMinutes > 15 ? 'LATE' : 'PRESENT';
-
-    const existing = await prisma.attendance.findFirst({
-      where: { employeeId: validation.data.employeeId, date: today }
-    });
-
-    const attendance = existing
-      ? await prisma.attendance.update({
-          where: { id: existing.id },
-          data: { checkIn: now, lateMinutes, status, ipAddress: req.ip, deviceInfo: req.headers['user-agent'], gpsLatitude: validation.data.latitude, gpsLongitude: validation.data.longitude, locationVerified: !!validation.data.latitude }
-        })
-      : await prisma.attendance.create({
-          data: {
-            employeeId: validation.data.employeeId,
-            date: today,
-            checkIn: now,
-            lateMinutes,
-            status,
-            ipAddress: req.ip,
-            deviceInfo: req.headers['user-agent'],
-            gpsLatitude: validation.data.latitude,
-            gpsLongitude: validation.data.longitude,
-            locationVerified: !!validation.data.latitude
-          }
-        });
-
-    res.json({ message: 'Check-in successful', attendance });
+    const users = await prisma.user.findMany({ select: publicUser, orderBy: { createdAt: 'asc' } });
+    return res.json(users.map(flatten));
   } catch (error) {
-    res.status(500).json({ message: 'Check-in failed', error: error.message });
+    return res.status(500).json({ message: 'Failed to fetch users', error: error.message });
   }
 });
 
-router.post('/check-out', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+// Current user
+router.get('/me', verifyToken, async (req, res) => {
   try {
-    const validation = checkInOutSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
-    }
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: publicUser });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    return res.json(flatten(user));
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch user', error: error.message });
+  }
+});
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// Get one user
+router.get('/:id', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: publicUser });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    return res.json(flatten(user));
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to fetch user', error: error.message });
+  }
+});
 
-    const attendance = await prisma.attendance.findFirst({
-      where: {
-        employeeId: validation.data.employeeId,
-        date: today
-      }
-    });
-
-    if (!attendance?.checkIn) {
-      return res.status(400).json({ message: 'No check-in found for today' });
-    }
-
-    if (attendance.checkOut) {
-      return res.status(400).json({ message: 'Already checked out today' });
-    }
-
-    const now = new Date();
-    const shiftEnd = new Date();
-    shiftEnd.setHours(17, 0, 0, 0);
-
-    const workingHours = Math.floor((now - attendance.checkIn) / 3600000);
-    const earlyDepartureMinutes = shiftEnd > now ? Math.floor((shiftEnd - now) / 60000) : 0;
-
-    const updatedAttendance = await prisma.attendance.update({
-      where: { id: attendance.id },
+// Create user
+router.post('/', verifyToken, authorize(['SUPER_ADMIN']), async (req, res) => {
+  const parsed = createSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ message: 'Invalid data', errors: parsed.error.flatten() });
+  const { username, email, password, role, employeeId } = parsed.data;
+  try {
+    const user = await prisma.user.create({
       data: {
-        checkOut: now,
-        workingHours,
-        earlyDepartureMinutes,
-        gpsLatitude: validation.data.latitude,
-        gpsLongitude: validation.data.longitude
-      }
+        username,
+        email: email.toLowerCase(),
+        passwordHash: await bcrypt.hash(password, 10),
+        roleId: await roleIdFor(role),
+        employeeId: employeeId || null
+      },
+      select: publicUser
     });
-
-    res.json({ message: 'Check-out successful', attendance: updatedAttendance });
+    return res.status(201).json(flatten(user));
   } catch (error) {
-    res.status(500).json({ message: 'Check-out failed', error: error.message });
+    if (error.code === 'P2002') return res.status(409).json({ message: 'Username, email or employee already in use' });
+    return res.status(error.status || 500).json({ message: 'Failed to create user', error: error.message });
   }
 });
 
-router.get('/employee/:employeeId', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+// Update user
+router.put('/:id', verifyToken, authorize(['SUPER_ADMIN']), async (req, res) => {
+  const parsed = updateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ message: 'Invalid data', errors: parsed.error.flatten() });
+  const { password, role, status, email, ...rest } = parsed.data;
+  if (status && !STATUSES.includes(status)) return res.status(400).json({ message: `Invalid status. Allowed: ${STATUSES.join(', ')}` });
   try {
-    const { startDate, endDate } = req.query;
-    const filters = { employeeId: req.params.employeeId };
-
-    if (startDate && endDate) {
-      filters.date = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
-    }
-
-    const attendance = await prisma.attendance.findMany({
-      where: filters,
-      orderBy: { date: 'desc' },
-      take: 30
-    });
-
-    const stats = {
-      present: attendance.filter(a => a.status === 'PRESENT').length,
-      late: attendance.filter(a => a.status === 'LATE').length,
-      absent: attendance.filter(a => a.status === 'ABSENT').length,
-      onLeave: attendance.filter(a => a.status === 'ON_LEAVE').length
-    };
-
-    res.json({ attendance, stats });
+    const data = { ...rest };
+    if (email) data.email = email.toLowerCase();
+    if (status) data.status = status;
+    if (password) data.passwordHash = await bcrypt.hash(password, 10);
+    if (role) data.roleId = await roleIdFor(role);
+    const user = await prisma.user.update({ where: { id: req.params.id }, data, select: publicUser });
+    return res.json(flatten(user));
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch attendance', error: error.message });
+    if (error.code === 'P2025') return res.status(404).json({ message: 'User not found' });
+    if (error.code === 'P2002') return res.status(409).json({ message: 'Username, email or employee already in use' });
+    return res.status(error.status || 500).json({ message: 'Failed to update user', error: error.message });
   }
 });
 
-router.get('/', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+// Delete user
+router.delete('/:id', verifyToken, authorize(['SUPER_ADMIN']), async (req, res) => {
+  if (req.params.id === req.user.userId) return res.status(400).json({ message: 'You cannot delete your own account' });
   try {
-    const { date, status } = req.query;
-    const filters = {};
-
-    if (date) {
-      const d = new Date(date);
-      filters.date = d;
-    }
-
-    if (status) filters.status = status;
-
-    const attendance = await prisma.attendance.findMany({
-      where: filters,
-      include: { employee: { include: { department: true } } },
-      orderBy: { date: 'desc' }
-    });
-
-    res.json(attendance);
+    await prisma.user.delete({ where: { id: req.params.id } });
+    return res.json({ message: 'User deleted' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch attendance', error: error.message });
+    if (error.code === 'P2025') return res.status(404).json({ message: 'User not found' });
+    if (error.code === 'P2003') return res.status(409).json({ message: 'User has related records (login history, notifications, audit logs). Set status to INACTIVE instead.' });
+    return res.status(500).json({ message: 'Failed to delete user', error: error.message });
   }
 });
 
