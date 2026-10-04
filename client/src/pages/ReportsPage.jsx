@@ -170,14 +170,14 @@ export default function ReportsPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
 
-  const exportExcel = async () => {
-    setExporting(true);
+  const exportReport = async (format) => {
+    setExporting(format);
     setExportError('');
     try {
       const type = EXPORT_TYPE[tab];
-      const params = tab === 'daily' ? { date } : period;
+      const params = { ...(tab === 'daily' ? { date } : period), format };
       const suffix = tab === 'daily' ? date : `${period.year}-${String(period.month).padStart(2, '0')}`;
-      await downloadFile(`/reports/export/${type}`, params, `${type}-${suffix}.xlsx`);
+      await downloadFile(`/reports/export/${type}`, params, `${type}-${suffix}.${format}`);
     } catch (err) {
       setExportError(errorMessage(err, 'فشل التصدير'));
     } finally {
@@ -190,7 +190,8 @@ export default function ReportsPage() {
       <PageHeader title="التقارير">
         {tab === 'daily' && <input type="date" className={`${inputClass} w-44`} value={date} onChange={(e) => setDate(e.target.value)} />}
         {tab !== 'daily' && tab !== 'departments' && <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />}
-        <button className={btnPrimary} onClick={exportExcel} disabled={exporting}>{exporting ? 'جارٍ التصدير...' : 'تصدير Excel'}</button>
+        <button className={btnPrimary} onClick={() => exportReport('xlsx')} disabled={!!exporting}>{exporting === 'xlsx' ? 'جارٍ التصدير...' : 'تصدير Excel'}</button>
+        <button className={btnSecondary} onClick={() => exportReport('pdf')} disabled={!!exporting}>{exporting === 'pdf' ? 'جارٍ التصدير...' : 'تصدير PDF'}</button>
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap gap-2">
