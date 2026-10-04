@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/.env
+.env
+client/dist
+**/*.log
+backups
+*.sql
+*.sql.gz
