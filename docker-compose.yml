@@ -48,9 +48,29 @@ services:
         VITE_API_URL: /api
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8080}:80"
     depends_on:
       - backend
 
+  # Optional HTTPS without a domain:  docker compose --profile https up -d
+  # SITE_ADDRESS in .env, e.g. 203-0-113-10.sslip.io (your server's public IP with dashes)
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-set-SITE_ADDRESS-in-env.invalid}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

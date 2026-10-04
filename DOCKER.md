@@ -105,3 +105,37 @@ gunzip -c backups/FILE.sql.gz | docker compose exec -T postgres psql -U postgres
 
 For HTTPS put a reverse proxy (Caddy, nginx, Traefik) in front of port 8080 and set
 `CLIENT_URL` to the public URL.
+
+## Access without a domain
+
+The app has logins and payroll data: do **not** leave plain `http://IP:8080` open to the internet.
+
+### A) Office / home network only (simplest)
+Keep `APP_BIND=0.0.0.0`, open `http://<server-LAN-IP>:8080` from devices on the same network,
+and make sure port 8080 is **not** forwarded on the router.
+
+### B) VPS, reachable from anywhere — HTTPS with a free sslip.io name (recommended)
+`203-0-113-10.sslip.io` always resolves to `203.0.113.10`, so Caddy can get a real
+Let's Encrypt certificate without buying a domain.
+
+```bash
+IP=$(curl -s https://api.ipify.org); HOST="$(echo $IP | tr . -).sslip.io"; echo $HOST
+sed -i "s/^SITE_ADDRESS=.*/SITE_ADDRESS=$HOST/" .env
+sed -i "s|^CLIENT_URL=.*|CLIENT_URL=https://$HOST|" .env
+sed -i "s/^APP_BIND=.*/APP_BIND=127.0.0.1/" .env        # 8080 no longer public
+
+# firewall (Ubuntu ufw): only SSH, 80, 443
+sudo ufw allow OpenSSH && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp && sudo ufw enable
+
+docker compose --profile https up -d
+docker compose logs -f caddy        # wait for "certificate obtained successfully"
+```
+
+Open `https://<HOST>`. Use `--profile https` on every later `up`/`down` command.
+Note: Docker publishes ports through its own iptables rules, bypassing ufw — that is why
+`APP_BIND=127.0.0.1` matters.
+
+### C) Only a few people, no open ports at all — Tailscale
+Install Tailscale on the server and on each user's phone/laptop, keep `APP_BIND=0.0.0.0`,
+block 8080 in the cloud firewall, and open `http://<server-tailscale-ip>:8080`
+(traffic is encrypted by Tailscale).
