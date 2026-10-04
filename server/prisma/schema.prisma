@@ -153,6 +153,8 @@ model Attendance {
   qrCode               String?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
+
+  @@unique([employeeId, date])
 }
 
 model LeaveRequest {
