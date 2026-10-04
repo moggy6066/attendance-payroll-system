@@ -17,6 +17,13 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const [dark, setDark] = useState(false);
   const role = localStorage.getItem('role') || 'EMPLOYEE';
+  let user = {};
+  try {
+    user = JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    user = {};
+  }
+  const roleLabel = { SUPER_ADMIN: 'مدير عام', ADMIN: 'مسؤول', EMPLOYEE: 'موظف' }[role] || role;
 
   const filteredNav = navItems.filter((item) => item.roles.includes(role));
 
@@ -58,7 +65,8 @@ export default function Layout({ children }) {
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-300">مرحبًا</p>
-                <h2 className="text-xl font-bold">لوحة التحكم</h2>
+                <h2 className="text-xl font-bold">{user.employee?.fullName || user.username || ''}</h2>
+                <p className="text-xs text-slate-400">{roleLabel}</p>
               </div>
 
               <div className="flex items-center gap-3">
