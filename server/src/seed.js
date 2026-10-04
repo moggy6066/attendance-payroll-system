@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { localDay } = require('./utils/date');
 
 const prisma = new PrismaClient();
 
@@ -166,43 +167,53 @@ async function seedSettings() {
     { key: 'default_shift_start', value: '08:00', description: 'Default shift start' },
     { key: 'default_shift_end', value: '17:00', description: 'Default shift end' },
     { key: 'late_threshold_minutes', value: '15', description: 'Late threshold' },
-    { key: 'timezone', value: 'Asia/Riyadh', description: 'Timezone' }
+    { key: 'timezone', value: process.env.APP_TIMEZONE || 'Africa/Cairo', description: 'Timezone' }
   ];
 
   for (const setting of settings) {
     await prisma.setting.upsert({
       where: { key: setting.key },
-      update: { value: setting.value },
+      update: {},
       create: setting
     });
   }
 }
 
+// Sample attendance for the last 10 days (dates are calendar days in APP_TIMEZONE).
 async function seedAttendance() {
-  const employees = await prisma.employee.findMany({ take: 12 });
-  const today = new Date();
+  const employees = await prisma.employee.findMany({ take: 12, orderBy: { employeeNumber: 'asc' } });
+  const today = localDay();
 
-  for (let i = 0; i < employees.length; i += 1) {
-    const employee = employees[i];
-    const attendanceDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-    const status = i % 3 === 0 ? 'LATE' : i % 2 === 0 ? 'PRESENT' : 'ABSENT';
+  for (let dayOffset = 1; dayOffset <= 10; dayOffset += 1) {
+    const date = new Date(today.getTime() - dayOffset * 86400000);
+    if (date.getUTCDay() === 5) continue; // Friday off
+    for (let i = 0; i < employees.length; i += 1) {
+      const employee = employees[i];
+      const k = (i + dayOffset) % 7;
+      const status = k === 0 ? 'ABSENT' : k === 3 ? 'LATE' : 'PRESENT';
+      const lateMinutes = status === 'LATE' ? 20 + (i % 4) * 10 : 0;
+      const overtimeMinutes = status === 'PRESENT' && i % 4 === 0 ? 45 : 0;
+      // 08:00 Cairo is 05:00 or 06:00 UTC; use a fixed UTC+3 offset for sample data.
+      const checkIn = status === 'ABSENT' ? null : new Date(date.getTime() + (5 * 60 + lateMinutes) * 60000);
+      const checkOut = status === 'ABSENT' ? null : new Date(date.getTime() + (14 * 60 + overtimeMinutes) * 60000);
 
-    await prisma.attendance.upsert({
-      where: { id: `seed-${employee.id}-${attendanceDate.toISOString()}` },
-      update: {},
-      create: {
-        id: `seed-${employee.id}-${attendanceDate.toISOString()}`,
-        employeeId: employee.id,
-        date: attendanceDate,
-        checkIn: new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate(), 8 + (i % 2), 10),
-        checkOut: new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate(), 17, 0),
-        workingHours: 8,
-        lateMinutes: status === 'LATE' ? 15 : 0,
-        status,
-        deviceInfo: 'Chrome on Windows',
-        ipAddress: '127.0.0.1'
-      }
-    });
+      await prisma.attendance.upsert({
+        where: { employeeId_date: { employeeId: employee.id, date } },
+        update: {},
+        create: {
+          employeeId: employee.id,
+          date,
+          checkIn,
+          checkOut,
+          workingHours: checkIn ? Math.floor((checkOut - checkIn) / 3600000) : null,
+          lateMinutes,
+          overtimeMinutes,
+          status,
+          deviceInfo: 'seed',
+          ipAddress: '127.0.0.1'
+        }
+      });
+    }
   }
 }
 
