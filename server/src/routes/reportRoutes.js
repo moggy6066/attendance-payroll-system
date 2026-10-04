@@ -1,5 +1,6 @@
 const express = require('express');
 const ExcelJS = require('exceljs');
+const { renderTablePdf } = require('../utils/pdf');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { localDay, parseDay, monthRange, formatDay, APP_TIMEZONE } = require('../utils/date');
@@ -322,37 +323,58 @@ const EXPORTS = {
   }
 };
 
+// GET /export/:type?format=xlsx|pdf  (default xlsx)
 router.get('/export/:type', verifyToken, authorize(ADMINS), async (req, res) => {
   const spec = EXPORTS[req.params.type];
   if (!spec) {
     return res.status(404).json({ message: `Unknown report. Available: ${Object.keys(EXPORTS).join(', ')}` });
   }
+  const format = String(req.query.format || 'xlsx').toLowerCase();
+  if (!['xlsx', 'pdf'].includes(format)) return res.status(400).json({ message: 'format must be xlsx or pdf' });
   try {
     const rows = await spec.build(req.query);
+    const { month, year } = monthRange(req.query.month, req.query.year);
+    const isDaily = req.params.type === 'attendance-daily';
+    const suffix = isDaily ? formatDay(parseDay(req.query.date) || localDay()) : `${year}-${String(month).padStart(2, '0')}`;
+    const filename = `${req.params.type}-${suffix}.${format}`;
+    const cell = (row, [key, , , fmt]) => (fmt ? fmt(row[key]) : row[key]);
+
+    if (format === 'pdf') {
+      const company = await prisma.setting.findUnique({ where: { key: 'company_name' } });
+      const period = req.params.type === 'employees' ? '' : isDaily ? `التاريخ: ${suffix}` : `الفترة: ${suffix}`;
+      const doc = renderTablePdf({
+        title: spec.title,
+        subtitle: [company?.value, period, `عدد السجلات: ${rows.length}`].filter(Boolean).join('   |   '),
+        columns: spec.columns.map((col) => ({ header: col[1], width: col[2], value: (row) => cell(row, col) })),
+        rows,
+        footer: `تم الإنشاء ${formatDay(localDay())}`
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+      return undefined;
+    }
+
     const workbook = new ExcelJS.Workbook();
     workbook.created = new Date();
     const sheet = workbook.addWorksheet(spec.title.slice(0, 31), { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     sheet.columns = spec.columns.map(([key, header, width]) => ({ key, header, width }));
     rows.forEach((row) => {
       const out = {};
-      spec.columns.forEach(([key, , , fmt]) => {
-        out[key] = fmt ? fmt(row[key]) : row[key];
+      spec.columns.forEach((col) => {
+        out[col[0]] = cell(row, col);
       });
       sheet.addRow(out);
     });
     sheet.getRow(1).font = { bold: true };
     sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
 
-    const { month, year } = monthRange(req.query.month, req.query.year);
-    const suffix = req.params.type === 'attendance-daily' ? formatDay(parseDay(req.query.date) || localDay()) : `${year}-${String(month).padStart(2, '0')}`;
-    const filename = `${req.params.type}-${suffix}.xlsx`;
-
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     await workbook.xlsx.write(res);
-    res.end();
+    return res.end();
   } catch (error) {
-    res.status(500).json({ message: 'Failed to export report', error: error.message });
+    return res.status(500).json({ message: 'Failed to export report', error: error.message });
   }
 });
 

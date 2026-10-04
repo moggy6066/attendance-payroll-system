@@ -167,7 +167,14 @@ async function seedSettings() {
     { key: 'default_shift_start', value: '08:00', description: 'Default shift start' },
     { key: 'default_shift_end', value: '17:00', description: 'Default shift end' },
     { key: 'late_threshold_minutes', value: '15', description: 'Late threshold' },
-    { key: 'timezone', value: process.env.APP_TIMEZONE || 'Africa/Cairo', description: 'Timezone' }
+    { key: 'timezone', value: process.env.APP_TIMEZONE || 'Africa/Cairo', description: 'Timezone' },
+    { key: 'weekend_days', value: '5,6', description: 'Weekly days off (0=Sunday … 6=Saturday)' },
+    { key: 'holidays', value: '', description: 'Public holidays, comma-separated YYYY-MM-DD' },
+    {
+      key: 'absence_tracking_start',
+      value: new Date(localDay().getTime() - 10 * 86400000).toISOString().slice(0, 10),
+      description: 'First day the automatic absence job may mark'
+    }
   ];
 
   for (const setting of settings) {
