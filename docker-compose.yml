@@ -1,58 +1,56 @@
-version: '3.8'
+# Production-style stack. Secrets come from a root .env file (copy .env.docker.example).
+#   docker compose up -d --build
+# The app is served on http://<host>:${APP_PORT:-8080}; the API is proxied under /api.
+# Postgres and the backend are NOT published on the host network.
 
 services:
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: hr_attendance_db
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hr_attendance_db}
+      TZ: Africa/Cairo
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hr_attendance_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   backend:
     build:
-      context: ./server
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hr_attendance_db?schema=public
-      JWT_SECRET: QwErTy123!@#HRAttendanceSystemSecureKey
-      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hr_attendance_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see DOCKER.md)}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: 5000
-      CLIENT_URL: http://localhost:5173
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:8080}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Africa/Cairo}
+      TZ: ${APP_TIMEZONE:-Africa/Cairo}
+      ABSENCE_JOB: ${ABSENCE_JOB:-on}
+      DB_PUSH: ${DB_PUSH:-true}
+      RUN_SEED: ${RUN_SEED:-false}
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./server:/app
-      - /app/node_modules
 
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: http://localhost:5000/api
+      - "${APP_PORT:-8080}:80"
     depends_on:
       - backend
-    volumes:
-      - ./client:/app
-      - /app/node_modules
 
 volumes:
   postgres_data:
-
-networks:
-  default:
-    name: attendance-network

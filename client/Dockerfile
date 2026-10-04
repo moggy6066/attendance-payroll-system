@@ -1,21 +1,19 @@
-FROM node:18-alpine as builder
-
+# Build from the repository root:  docker compose build frontend
+#   (or: docker build -f client/Dockerfile .)
+FROM node:20-alpine AS build
 WORKDIR /app
-
 COPY package.json package-lock.json ./
-RUN npm ci
+COPY server/package.json server/
+COPY client/package.json client/
+RUN npm ci --workspace client
 
-COPY . .
-RUN npm run build
+COPY client client
+# Vite bakes this in at BUILD time. "/api" = same origin, proxied by nginx below.
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+RUN npm run build --workspace client
 
-FROM node:18-alpine
-
-WORKDIR /app
-
-RUN npm install -g serve
-
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 5173
-
-CMD ["serve", "-s", "dist", "-l", "5173"]
+FROM nginx:1.27-alpine
+COPY client/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/client/dist /usr/share/nginx/html
+EXPOSE 80
