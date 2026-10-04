@@ -16,6 +16,12 @@ const departmentRoutes = require('./routes/departmentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
 dotenv.config();
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET is missing or too short (min 32 chars). Set it in server/.env — see server/.env.example.');
+  process.exit(1);
+}
+
 const app = express();
 const prisma = new PrismaClient();
 const port = process.env.PORT || 5000;
@@ -61,7 +67,7 @@ app.post('/api/auth/login', async (req, res) => {
         employeeId: user.employeeId,
         email: user.email,
       },
-      process.env.JWT_SECRET || 'super-secret-key-change-me',
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
