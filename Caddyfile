@@ -1,0 +1,14 @@
+# Used only by the optional "https" profile (docker compose --profile https up -d).
+# SITE_ADDRESS comes from .env, e.g. 203-0-113-10.sslip.io — Caddy gets a free
+# Let's Encrypt certificate for it automatically (ports 80 and 443 must be open).
+{$SITE_ADDRESS} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	reverse_proxy frontend:80
+}
