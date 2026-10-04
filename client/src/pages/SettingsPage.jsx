@@ -1,15 +1,61 @@
+import { useEffect, useState } from 'react';
+import api from '../api/axios';
+import { Alert, Card, Field, PageHeader, btnPrimary, errorMessage, inputClass, useApi } from '../components/ui';
+
+const FIELDS = [
+  ['company_name', 'اسم الشركة', 'text'],
+  ['attendance_radius_meters', 'نصف قطر GPS (متر)', 'number'],
+  ['default_shift_start', 'وقت بدء الدوام الافتراضي', 'time'],
+  ['default_shift_end', 'وقت نهاية الدوام الافتراضي', 'time'],
+  ['timezone', 'المنطقة الزمنية', 'text']
+];
+
 export default function SettingsPage() {
+  const { data, loading, error } = useApi('/settings');
+  const [form, setForm] = useState({});
+  const [msg, setMsg] = useState({ type: 'success', text: '' });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data) setForm(Object.fromEntries(FIELDS.map(([k]) => [k, data.find((s) => s.key === k)?.value ?? ''])));
+  }, [data]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.put('/settings', form);
+      setMsg({ type: 'success', text: 'تم حفظ الإعدادات' });
+    } catch (err) {
+      setMsg({ type: 'error', text: errorMessage(err) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-bold">الإعدادات</h1>
-      <div className="rounded-2xl bg-white p-6 shadow-soft">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div><label className="mb-2 block text-sm">اسم الشركة</label><input className="w-full rounded-lg border px-3 py-2" value="نظام الحضور والانصراف" /></div>
-          <div><label className="mb-2 block text-sm">نصف قطر GPS</label><input className="w-full rounded-lg border px-3 py-2" value="120" /></div>
-          <div><label className="mb-2 block text-sm">وقت بدء الدوام</label><input className="w-full rounded-lg border px-3 py-2" value="08:00" /></div>
-          <div><label className="mb-2 block text-sm">وقت نهاية الدوام</label><input className="w-full rounded-lg border px-3 py-2" value="17:00" /></div>
-        </div>
-      </div>
+      <PageHeader title="الإعدادات" />
+      <Alert>{error}</Alert>
+      <Alert type={msg.type} onClose={() => setMsg({ ...msg, text: '' })}>{msg.text}</Alert>
+      <Card>
+        {loading ? 'جارٍ التحميل...' : (
+          <form onSubmit={save} className="grid gap-4 md:grid-cols-2">
+            {FIELDS.map(([key, label, type]) => (
+              <Field key={key} label={label}>
+                <input type={type} className={inputClass} value={form[key] ?? ''} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+              </Field>
+            ))}
+            <p className="text-xs text-slate-500 md:col-span-2">
+              مواعيد الدوام هنا تُستخدم لحساب التأخير والوقت الإضافي للموظفين الذين ليس لهم دوام خاص.
+              تغيير المنطقة الزمنية هنا للعرض فقط؛ حساب التواريخ في السيرفر يتبع APP_TIMEZONE في ملف .env.
+            </p>
+            <div className="md:col-span-2">
+              <button className={btnPrimary} disabled={saving}>{saving ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}</button>
+            </div>
+          </form>
+        )}
+      </Card>
     </div>
   );
 }
