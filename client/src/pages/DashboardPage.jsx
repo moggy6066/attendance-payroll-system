@@ -2,11 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import StatCard from '../components/StatCard';
 import ChartPanel from '../components/ChartPanel';
-import {
-  Bar,
-  Line,
-  Doughnut
-} from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,12 +19,13 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState({
-    totalEmployees: 25,
-    presentToday: 18,
-    absentToday: 3,
-    lateEmployees: 4,
-    pendingLeave: 6,
-    totalPayroll: 55000
+    totalEmployees: '—',
+    presentToday: '—',
+    absentToday: '—',
+    lateEmployees: '—',
+    pendingLeave: '—',
+    totalPayroll: 0,
+    last7Days: []
   });
 
   useEffect(() => {
@@ -43,33 +40,29 @@ export default function DashboardPage() {
     loadSummary();
   }, []);
 
+  const days = summary.last7Days || [];
   const attendanceData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    labels: days.map((d) => d.date.slice(5)),
     datasets: [
       {
-        label: 'الحضور',
-        data: [20, 22, 21, 24, 17, 19],
+        label: 'الحضور (آخر 7 أيام)',
+        data: days.map((d) => d.present),
         backgroundColor: '#2563eb',
         borderRadius: 8
       }
     ]
   };
 
-  const salaryData = {
-    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو'],
-    datasets: [{
-      label: 'الرواتب',
-      data: [42000, 47000, 45000, 50000, 54000],
-      borderColor: '#10b981',
-      tension: 0.4,
-      fill: false
-    }]
-  };
-
+  const n = (v) => (typeof v === 'number' ? v : 0);
   const leaveData = {
     labels: ['حاضر', 'متأخر', 'غائب', 'إجازة'],
     datasets: [{
-      data: [18, 4, 3, 2],
+      data: [
+        Math.max(0, n(summary.presentToday) - n(summary.lateEmployees)),
+        n(summary.lateEmployees),
+        n(summary.absentToday),
+        n(summary.onLeaveToday)
+      ],
       backgroundColor: ['#2563eb', '#f59e0b', '#ef4444', '#10b981']
     }]
   };
@@ -79,7 +72,7 @@ export default function DashboardPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">لوحة التحكم</h1>
-          <p className="text-sm text-slate-500">ملخص التشغيل اليومي</p>
+          <p className="text-sm text-slate-500">ملخص التشغيل اليومي {summary.date || ''}</p>
         </div>
       </div>
 
@@ -96,24 +89,15 @@ export default function DashboardPage() {
           <Bar data={attendanceData} />
         </ChartPanel>
 
-        <ChartPanel title="الرواتب الشهرية">
-          <Line data={salaryData} />
+        <ChartPanel title="حالة اليوم">
+          <Doughnut data={leaveData} />
         </ChartPanel>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <ChartPanel title="حالة الموظفين">
-          <Doughnut data={leaveData} />
-        </ChartPanel>
-
-        <ChartPanel title="النشاط الأخير">
-          <ul className="space-y-3 text-sm text-slate-600">
-            <li className="rounded-xl bg-slate-50 p-3">تحديث رواتب شهر مايو</li>
-            <li className="rounded-xl bg-slate-50 p-3">تمت الموافقة على 4 طلبات إجازة</li>
-            <li className="rounded-xl bg-slate-50 p-3">تم تسجيل حضور 18 موظفًا اليوم</li>
-            <li className="rounded-xl bg-slate-50 p-3">مراجعة تقييمات الأداء</li>
-          </ul>
-        </ChartPanel>
+      <div className="mt-6 grid gap-6 md:grid-cols-3">
+        <StatCard title="نسبة الحضور اليوم" value={`${summary.attendanceRate ?? 0}%`} tone="green" />
+        <StatCard title={`إجمالي آخر رواتب${summary.payrollPeriod ? ` (${summary.payrollPeriod})` : ''}`} value={Number(summary.totalPayroll || 0).toLocaleString('ar-EG')} tone="blue" />
+        <StatCard title="عدد الأقسام" value={summary.departments ?? '—'} tone="slate" />
       </div>
     </div>
   );
