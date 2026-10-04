@@ -21,7 +21,7 @@ const publicUser = {
   createdAt: true,
   updatedAt: true,
   role: { select: { name: true } },
-  employee: { select: { id: true, fullName: true, employeeNumber: true } }
+  employee: { select: { id: true, fullName: true, employeeNumber: true, jobTitle: true, phone: true, hireDate: true, shiftStart: true, shiftEnd: true, department: { select: { name: true } } } }
 };
 
 const flatten = (u) => (u ? { ...u, role: u.role?.name } : u);
@@ -67,6 +67,26 @@ router.get('/me', verifyToken, async (req, res) => {
     return res.json(flatten(user));
   } catch (error) {
     return res.status(500).json({ message: 'Failed to fetch user', error: error.message });
+  }
+});
+
+// Change own password
+router.put('/me/password', verifyToken, async (req, res) => {
+  const schema = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(8) });
+  const parsed = schema.safeParse(req.body || {});
+  if (!parsed.success) return res.status(400).json({ message: 'New password must be at least 8 characters', errors: parsed.error.flatten() });
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const ok = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+    if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 10), forcePasswordChange: false }
+    });
+    return res.json({ message: 'Password updated' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to update password', error: error.message });
   }
 });
 
