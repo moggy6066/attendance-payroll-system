@@ -8,7 +8,11 @@
     "start": "node src/index.js",
     "db:push": "prisma db push",
     "generate": "prisma generate",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "test": "node --test test/*.test.js",
+    "mark-absences": "node -e \"require('dotenv').config();const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();require('./src/services/absence').runAbsenceJob(p).then(r=>{console.log(JSON.stringify(r,null,1));return p.$disconnect()})\"",
+    "check-duplicates": "node scripts/attendance-duplicates.js",
+    "fix-duplicates": "node scripts/attendance-duplicates.js --fix"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
@@ -19,6 +23,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "pdfkit": "^0.15.2",
     "prisma": "^5.20.0",
     "zod": "^3.23.0"
   }

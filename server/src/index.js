@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('./middleware/auth');
 const { localDay, formatDay } = require('./utils/date');
+const { startAbsenceScheduler } = require('./services/absence');
 
 const employeeRoutes = require('./routes/employeeRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -152,7 +153,16 @@ app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN'
   }
 });
 
-const EDITABLE_SETTINGS = ['company_name', 'attendance_radius_meters', 'default_shift_start', 'default_shift_end', 'timezone'];
+const EDITABLE_SETTINGS = [
+  'company_name',
+  'attendance_radius_meters',
+  'default_shift_start',
+  'default_shift_end',
+  'timezone',
+  'weekend_days',
+  'holidays',
+  'absence_tracking_start'
+];
 
 app.get('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, res) => {
   try {
@@ -173,6 +183,19 @@ app.put('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
       if (body[key] !== undefined && !/^\d{1,2}:\d{2}$/.test(String(body[key]))) {
         return res.status(400).json({ message: `${key} must be HH:MM` });
       }
+    }
+    if (body.weekend_days !== undefined && !/^([0-6](,[0-6])*)?$/.test(String(body.weekend_days).replace(/\s/g, ''))) {
+      return res.status(400).json({ message: 'weekend_days must be comma-separated day numbers 0-6 (0 = Sunday)' });
+    }
+    if (body.weekend_days !== undefined) body.weekend_days = String(body.weekend_days).replace(/\s/g, '');
+    if (body.holidays !== undefined) {
+      const items = String(body.holidays).split(/[\s,]+/).filter(Boolean);
+      const bad = items.filter((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d));
+      if (bad.length) return res.status(400).json({ message: `Invalid holiday dates: ${bad.join(', ')}` });
+      body.holidays = items.join(',');
+    }
+    if (body.absence_tracking_start !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.absence_tracking_start))) {
+      return res.status(400).json({ message: 'absence_tracking_start must be YYYY-MM-DD' });
     }
     if (body.attendance_radius_meters !== undefined && !(Number(body.attendance_radius_meters) > 0)) {
       return res.status(400).json({ message: 'attendance_radius_meters must be a positive number' });
@@ -195,4 +218,5 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
+  startAbsenceScheduler(prisma);
 });

@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
 const { parseDay, daysBetweenInclusive } = require('../utils/date');
+const { applyApprovedLeave } = require('../services/absence');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -108,6 +109,7 @@ async function decide(req, res, status) {
   });
 
   const approved = status === 'APPROVED';
+  const attendanceSync = approved ? await applyApprovedLeave(prisma, leave) : null;
   const reason = (req.body && req.body.reason) || 'لم يتم تحديد السبب';
   await prisma.notification.create({
     data: {
@@ -126,7 +128,7 @@ async function decide(req, res, status) {
     }
   });
 
-  return res.json(leave);
+  return res.json(attendanceSync ? { ...leave, attendanceSync } : leave);
 }
 
 router.put('/:id/approve', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {

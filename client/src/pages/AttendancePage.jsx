@@ -73,7 +73,23 @@ const baseColumns = [
 function AdminAttendance() {
   const [date, setDate] = useState(todayISO());
   const [status, setStatus] = useState('');
-  const { data, loading, error } = useApi('/attendance', { date, ...(status ? { status } : {}) });
+  const { data, loading, error, reload } = useApi('/attendance', { date, ...(status ? { status } : {}) });
+  const [marking, setMarking] = useState(false);
+  const [markMsg, setMarkMsg] = useState({ type: 'success', text: '' });
+  const isPast = date < todayISO();
+  const markAbsences = async () => {
+    setMarking(true);
+    try {
+      const res = await api.post('/attendance/mark-absences', { date });
+      const r = res.data;
+      setMarkMsg({ type: 'success', text: r.skipped ? 'هذا اليوم إجازة أسبوعية أو عطلة رسمية' : `تم تسجيل ${r.absent} غياب و${r.onLeave} إجازة` });
+      reload();
+    } catch (err) {
+      setMarkMsg({ type: 'error', text: errorMessage(err) });
+    } finally {
+      setMarking(false);
+    }
+  };
   const columns = [
     { label: 'الموظف', render: (r) => <div><p className="font-semibold">{r.employee?.fullName}</p><p className="text-slate-500">{r.employee?.employeeNumber}</p></div> },
     { label: 'القسم', render: (r) => r.employee?.department?.name || '—' },
@@ -82,7 +98,9 @@ function AdminAttendance() {
   return (
     <>
       <Alert>{error}</Alert>
+      <Alert type={markMsg.type} onClose={() => setMarkMsg({ ...markMsg, text: '' })}>{markMsg.text}</Alert>
       <div className="mb-4 flex flex-wrap gap-3">
+        {isPast && <button className={btnSecondary} disabled={marking} onClick={markAbsences}>{marking ? '...' : 'تسجيل غياب من لم يحضر'}</button>}
         <input type="date" className={`${inputClass} max-w-xs`} value={date} onChange={(e) => setDate(e.target.value)} />
         <select className={`${inputClass} max-w-xs`} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">كل الحالات</option>

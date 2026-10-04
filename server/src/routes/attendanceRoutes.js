@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
 const { localDay, parseDay, localMinutesOfDay, hhmmToMinutes } = require('../utils/date');
+const { runAbsenceJob, markAbsencesForDay, loadCalendar } = require('../services/absence');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -210,6 +211,23 @@ router.get('/', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), async (req, re
     res.json(attendance);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch attendance', error: error.message });
+  }
+});
+
+// POST /mark-absences  body: { date?: 'YYYY-MM-DD' }
+// Without a date: runs the same catch-up as the hourly job. With a date: marks that single past day
+// (ignores absence_tracking_start, still skips weekends/holidays and never overwrites records).
+router.post('/mark-absences', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+  try {
+    const { date } = req.body || {};
+    if (!date) return res.json(await runAbsenceJob(prisma));
+    const day = parseDay(date);
+    if (!day) return res.status(400).json({ message: 'date must be YYYY-MM-DD' });
+    if (day >= localDay()) return res.status(400).json({ message: 'Only past days can be marked (the day is still running).' });
+    const calendar = await loadCalendar(prisma);
+    return res.json(await markAbsencesForDay(prisma, day, calendar));
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to mark absences', error: error.message });
   }
 });
 
