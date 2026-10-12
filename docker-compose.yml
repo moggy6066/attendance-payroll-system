@@ -31,6 +31,8 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: 5000
       CLIENT_URL: ${CLIENT_URL:-http://localhost:8080}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10}
       APP_TIMEZONE: ${APP_TIMEZONE:-Africa/Cairo}
       TZ: ${APP_TIMEZONE:-Africa/Cairo}
       ABSENCE_JOB: ${ABSENCE_JOB:-on}
