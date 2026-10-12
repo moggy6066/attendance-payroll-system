@@ -30,7 +30,7 @@ Use `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_attendance_d
 cd server
 cp .env.example .env
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 node src/seed.js
 ```
 

@@ -46,7 +46,7 @@ services:
       APP_TIMEZONE: ${APP_TIMEZONE:-Africa/Cairo}
       TZ: ${APP_TIMEZONE:-Africa/Cairo}
       ABSENCE_JOB: ${ABSENCE_JOB:-on}
-      DB_PUSH: ${DB_PUSH:-true}
+      DB_MIGRATE: ${DB_MIGRATE:-true}
       RUN_SEED: ${RUN_SEED:-false}
     depends_on:
       postgres:
