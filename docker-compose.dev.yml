@@ -1,0 +1,28 @@
+# Local development only: PostgreSQL on 127.0.0.1:5432 (not reachable from the network).
+#   docker compose -f docker-compose.dev.yml up -d
+#   server/.env -> DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_attendance_db?schema=public"
+# Then: npm install && (cd server && npx prisma generate && npx prisma db push) && npm run dev
+# Never use these credentials on a server; production uses docker-compose.yml + .env.
+name: attendance-payroll-dev
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hr_attendance_db
+      TZ: Africa/Cairo
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hr_attendance_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_dev_data:
