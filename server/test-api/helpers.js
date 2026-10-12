@@ -3,8 +3,10 @@
 // The database is migrated by `prisma migrate deploy` and its tables are emptied here.
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'api-test-secret-not-for-production';
+// Random per run: nothing secret is stored in the repository.
+process.env.JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 if (!process.env.DATABASE_URL) {
@@ -12,7 +14,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const prisma = new PrismaClient();
-const PASSWORD = 'Test-Password-123';
+const PASSWORD = crypto.randomBytes(12).toString('base64url');
 
 async function resetDb() {
   const tables = await prisma.$queryRaw`

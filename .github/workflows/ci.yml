@@ -81,7 +81,6 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/apitest?schema=public
-      JWT_SECRET: ci-only-secret-not-used-anywhere-else
       TZ: Africa/Cairo
       APP_TIMEZONE: Africa/Cairo
     steps:
@@ -92,8 +91,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies (lockfile only)
-        run: npm ci
+      - name: Install dependencies (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
 
       - name: Generate Prisma client
         run: npm run generate --workspace server
