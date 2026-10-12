@@ -1,6 +1,9 @@
 {
   "name": "attendance-payroll-system",
   "private": true,
+  "engines": {
+    "node": ">=20 <25"
+  },
   "workspaces": [
     "server",
     "client"
