@@ -218,7 +218,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Unexpected server error', error: err.message });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
-  startAbsenceScheduler(prisma);
-});
+// Start the HTTP server only when run directly (node src/index.js).
+// Tests import the app and listen on a random port themselves.
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+    startAbsenceScheduler(prisma);
+  });
+}
+
+module.exports = app;

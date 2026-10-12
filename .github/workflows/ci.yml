@@ -61,3 +61,46 @@ jobs:
 
       - name: Build frontend image
         run: docker build -f client/Dockerfile -t aps-frontend:ci .
+
+  api-tests:
+    name: API tests (PostgreSQL) + coverage
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: apitest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d apitest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/apitest?schema=public
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+      TZ: Africa/Cairo
+      APP_TIMEZONE: Africa/Cairo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (lockfile only)
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run generate --workspace server
+
+      - name: Apply migrations to the test database
+        run: npm run migrate:deploy --workspace server
+
+      - name: Unit + API tests with coverage (min 50% lines)
+        run: npm run test:coverage --workspace server
+
