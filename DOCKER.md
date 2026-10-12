@@ -13,6 +13,9 @@ cp .env.docker.example .env
 sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 64)/" .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^RUN_SEED=.*/RUN_SEED=true/" .env        # create roles + initial users once
+sed -i "s/^ADMIN_EMAIL=.*/ADMIN_EMAIL=you@yourcompany.com/" .env
+sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$(openssl rand -base64 18)/" .env
+grep ^ADMIN_PASSWORD .env                          # note it down, then remove it from .env after the first login
 
 docker compose up -d --build
 docker compose logs -f backend                     # wait for "Server listening"
@@ -21,7 +24,9 @@ sed -i "s/^RUN_SEED=.*/RUN_SEED=false/" .env       # never seed twice
 docker compose up -d backend
 ```
 
-Log in with the seeded admin and **change its password immediately** (Profile page).
+Log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`, **change the password from the Profile page**, then
+clear `ADMIN_PASSWORD` in `.env`. The seed creates only this SUPER_ADMIN in Docker — no demo accounts.
+Re-running the seed never changes an existing user's password.
 
 ## Upgrading an existing Docker installation (old docker-compose.yml)
 

@@ -28,6 +28,9 @@ npx prisma db push
 node src/seed.js
 ```
 
+Before seeding, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (min. 12 characters) in `server/.env`.
+For local demo data add `SEED_DEMO=true` (ignored in production; demo password `Demo@12345` or `DEMO_PASSWORD`).
+
 ## Application URLs
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5000
