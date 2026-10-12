@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const { localDay } = require('./utils/date');
+const { resolveSeedConfig } = require('./utils/seedConfig');
 
 const prisma = new PrismaClient();
 
@@ -67,17 +68,13 @@ async function seedDepartments() {
   }
 }
 
-async function seedDefaults() {
+// Creates each user (with its linked employee record) unless the email already exists.
+// Existing users are never modified, so re-running the seed cannot reset a password.
+async function seedUsers(users) {
   const roleMap = await prisma.role.findMany();
   const roleByName = Object.fromEntries(roleMap.map((role) => [role.name, role]));
 
-  const defaultUsers = [
-    { email: 'superadmin@company.com', username: 'superadmin', password: 'SuperAdmin@123', role: 'SUPER_ADMIN', fullName: 'Super Admin' },
-    { email: 'admin@company.com', username: 'admin', password: 'Admin@123', role: 'ADMIN', fullName: 'Admin User' },
-    { email: 'employee@company.com', username: 'employee', password: 'Employee@123', role: 'EMPLOYEE', fullName: 'Employee User' }
-  ];
-
-  for (const user of defaultUsers) {
+  for (const user of users) {
     const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
     if (existingUser) continue;
 
@@ -113,7 +110,7 @@ async function seedDefaults() {
   }
 }
 
-async function seedEmployees() {
+async function seedEmployees(demoPassword) {
   const departments = await prisma.department.findMany();
   const employeeRole = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
 
@@ -145,7 +142,7 @@ async function seedEmployees() {
 
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (!userExists) {
-      const passwordHash = await bcrypt.hash('Employee@123', 10);
+      const passwordHash = await bcrypt.hash(demoPassword, 10);
       await prisma.user.create({
         data: {
           username: `emp${String(i + 1).padStart(3, '0')}`,
@@ -225,18 +222,32 @@ async function seedAttendance() {
 }
 
 async function main() {
+  const config = resolveSeedConfig();
+  config.warnings.forEach((w) => console.warn(`[seed] ${w}`));
+
   await seedRoles();
   await seedDepartments();
-  await seedDefaults();
-  await seedEmployees();
   await seedSettings();
-  await seedAttendance();
-  console.log('Database seed completed successfully.');
+  await seedUsers([
+    { email: config.admin.email, username: 'superadmin', password: config.admin.password, role: 'SUPER_ADMIN', fullName: 'Super Admin' }
+  ]);
+
+  if (config.demo) {
+    console.log('[seed] SEED_DEMO=true: adding demo users, employees and sample attendance (development only).');
+    await seedUsers([
+      { email: 'admin@company.com', username: 'admin', password: config.demoPassword, role: 'ADMIN', fullName: 'Admin User' },
+      { email: 'employee@company.com', username: 'employee', password: config.demoPassword, role: 'EMPLOYEE', fullName: 'Employee User' }
+    ]);
+    await seedEmployees(config.demoPassword);
+    await seedAttendance();
+  }
+
+  console.log(`Database seed completed successfully. Super admin: ${config.admin.email}`);
 }
 
 main()
   .catch((e) => {
-    console.error('Seed failed:', e);
+    console.error(e.code === 'SEED_CONFIG' ? e.message : 'Seed failed:', e.code === 'SEED_CONFIG' ? '' : e);
     process.exit(1);
   })
   .finally(async () => {
