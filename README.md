@@ -24,7 +24,7 @@ npm run dev
 cd server
 cp .env.example .env
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 node src/seed.js
 ```
 

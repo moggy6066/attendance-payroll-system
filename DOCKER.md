@@ -48,11 +48,11 @@ docker compose build
 docker compose up -d postgres
 
 # 4. Duplicate attendance check (required before the new unique rule)
-docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates
+docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
 #    only if duplicates were found:
-docker compose run --rm -e DB_PUSH=false backend npm run fix-duplicates
-docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates   # must say "No duplicate"
-docker compose run --rm -e DB_PUSH=false backend npx prisma db push --skip-generate --accept-data-loss
+docker compose run --rm -e DB_MIGRATE=false backend npm run fix-duplicates
+docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates   # must say "No duplicate"
+docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate --accept-data-loss
 
 # 5. Start everything
 docker compose up -d
@@ -82,7 +82,7 @@ changed in the database.
 docker compose ps
 docker compose logs --tail=100 backend
 docker compose exec -T postgres pg_dump -U postgres -d hr_attendance_db | gzip > backups/$(date +%F).sql.gz
-docker compose run --rm -e DB_PUSH=false backend npm run mark-absences
+docker compose run --rm -e DB_MIGRATE=false backend npm run mark-absences
 ```
 
 Restore a backup (replaces current data):
@@ -100,7 +100,7 @@ gunzip -c backups/FILE.sql.gz | docker compose exec -T postgres psql -U postgres
 | `APP_PORT` | 8080 | host port of the web app |
 | `APP_TIMEZONE` | Africa/Cairo | calendar day for attendance/absences |
 | `ABSENCE_JOB` | on | automatic absence marking |
-| `DB_PUSH` | true | apply schema at start; never forces data loss |
+| `DB_MIGRATE` | true | apply pending Prisma migrations at start (`prisma migrate deploy`) |
 | `RUN_SEED` | false | first install only |
 
 For HTTPS put a reverse proxy (Caddy, nginx, Traefik) in front of port 8080 and set
@@ -156,11 +156,11 @@ docker compose down
 docker compose build
 docker compose up -d postgres
 # 3. duplicate attendance check
-docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates
+docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
 #    only if duplicates were found:
-docker compose run --rm -e DB_PUSH=false backend npm run fix-duplicates
-docker compose run --rm -e DB_PUSH=false backend npm run check-duplicates
-docker compose run --rm -e DB_PUSH=false backend npx prisma db push --skip-generate --accept-data-loss
+docker compose run --rm -e DB_MIGRATE=false backend npm run fix-duplicates
+docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
+docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate --accept-data-loss
 # 4. start
 docker compose up -d
 docker compose logs -f backend      # "Server listening" = OK (Ctrl+C to leave)
@@ -201,3 +201,25 @@ Restore (replaces current data):
 docker compose cp backups\hr-YYYY-MM-DD_HHmm.sql.gz postgres:/tmp/restore.sql.gz
 docker compose exec -T postgres sh -c "gunzip -c /tmp/restore.sql.gz | psql -U postgres -d hr_attendance_db"
 ```
+
+## Moving to migrations (one time, existing installations)
+
+Since migrations were introduced, the backend applies `server/prisma/migrations` with
+`prisma migrate deploy` instead of `prisma db push`. A database created earlier with `db push`
+has no migration history, so the first start stops with error **P3005** and prints these steps:
+
+```bash
+./scripts/backup.sh        # or: docker compose exec -T postgres pg_dump ... | gzip > backups/before-migrations.sql.gz
+docker compose run --rm -e DB_MIGRATE=false backend sh -c 'npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code'
+docker compose run --rm -e DB_MIGRATE=false backend npx prisma migrate resolve --applied 0_init
+docker compose up -d
+```
+
+`migrate diff` must exit with code 0 (no differences). If it prints a missing unique index on
+attendance, run the duplicate check/fix from the upgrade section first, then
+`docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate`, and repeat
+the diff. Only then run `migrate resolve`.
+
+Changing the schema from now on (developers): edit `schema.prisma`, run
+`npm run migrate:dev --workspace server -- --name <change>` against a local database, and commit
+the new folder under `server/prisma/migrations`.
