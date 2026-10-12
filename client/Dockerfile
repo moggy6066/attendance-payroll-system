@@ -1,6 +1,8 @@
 # Build from the repository root:  docker compose build frontend
 #   (or: docker build -f client/Dockerfile .)
-FROM node:22-alpine AS build
+# Debian (glibc) build stage: package-lock.json only has the glibc native binaries of
+# rollup/esbuild, so `vite build` fails on Alpine (musl). The final image stays nginx:alpine.
+FROM node:22-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/
