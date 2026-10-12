@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('./middleware/auth');
+const { applySecurity, createLoginLimiter } = require('./middleware/security');
 const { localDay, formatDay } = require('./utils/date');
 const { startAbsenceScheduler } = require('./services/absence');
 
@@ -28,6 +29,7 @@ const app = express();
 const prisma = new PrismaClient();
 const port = process.env.PORT || 5000;
 
+applySecurity(app);
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
@@ -36,7 +38,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Attendance system API is running', timestamp: new Date().toISOString() });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', createLoginLimiter(), async (req, res) => {
   const { email, password } = req.body || {};
 
   if (!email || !password) {
