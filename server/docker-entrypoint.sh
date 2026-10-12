@@ -6,9 +6,12 @@
 #   RUN_SEED=true   run the initial seed once (first install only).
 set -e
 
+# Local Prisma CLI (never npx: it could download a package at start-up).
+PRISMA=/app/node_modules/.bin/prisma
+
 if [ "${DB_MIGRATE:-true}" = "true" ]; then
   echo "[entrypoint] applying database migrations (prisma migrate deploy)"
-  if ! out=$(npx prisma migrate deploy 2>&1); then
+  if ! out=$("$PRISMA" migrate deploy 2>&1); then
     echo "$out"
     if echo "$out" | grep -q "P3005"; then
       cat <<'MSG'
@@ -18,9 +21,9 @@ It must be "baselined" ONCE. Nothing in the database was changed. Steps (take a 
 
   ./scripts/backup.sh     # or the pg_dump command in DOCKER.md
   # 1) The live schema must match the schema in this version (exit code 0 = identical):
-  docker compose run --rm -e DB_MIGRATE=false backend sh -c 'npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code'
+  docker compose run --rm -e DB_MIGRATE=false backend sh -c '/app/node_modules/.bin/prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code'
   # 2) Mark the initial migration as already applied:
-  docker compose run --rm -e DB_MIGRATE=false backend npx prisma migrate resolve --applied 0_init
+  docker compose run --rm -e DB_MIGRATE=false backend /app/node_modules/.bin/prisma migrate resolve --applied 0_init
   docker compose up -d
 
 If step 1 prints differences, see "Moving to migrations" in DOCKER.md before continuing.

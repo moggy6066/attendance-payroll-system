@@ -11,6 +11,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "generate": "prisma generate",
+    "validate": "prisma validate",
     "seed": "node src/seed.js",
     "test": "node --test test/*.test.js",
     "mark-absences": "node -e \"require('dotenv').config();const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();require('./src/services/absence').runAbsenceJob(p).then(r=>{console.log(JSON.stringify(r,null,1));return p.$disconnect()})\"",

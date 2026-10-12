@@ -3,7 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { signToken } = require('./utils/token');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('./middleware/auth');
 const { applySecurity, createLoginLimiter } = require('./middleware/security');
@@ -64,16 +64,7 @@ app.post('/api/auth/login', createLoginLimiter(), async (req, res) => {
       return res.status(403).json({ message: 'Account is not active.' });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role.name,
-        employeeId: user.employeeId,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const token = signToken(user);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -87,6 +78,7 @@ app.post('/api/auth/login', createLoginLimiter(), async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role.name,
+        forcePasswordChange: user.forcePasswordChange,
         employee: user.employee
       }
     });

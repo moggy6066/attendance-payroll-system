@@ -33,7 +33,7 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.user.role);
       localStorage.setItem('user', JSON.stringify(data.user));
-      window.location.href = '/dashboard';
+      window.location.href = data.user.forcePasswordChange ? '/profile' : '/dashboard';
     } catch (err) {
       setError(err.message || 'حدث خطأ غير متوقع');
     } finally {

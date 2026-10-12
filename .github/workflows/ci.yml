@@ -25,16 +25,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies (lockfile only)
-        run: npm ci
+      - name: Install dependencies (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
 
       - name: Generate Prisma client
-        run: npx prisma generate
-        working-directory: server
+        run: npm run generate --workspace server
 
       - name: Validate Prisma schema
-        run: npx prisma validate
-        working-directory: server
+        run: npm run validate --workspace server
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
 
