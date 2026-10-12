@@ -8,7 +8,6 @@ function signToken(user) {
       userId: user.id,
       role: user.role.name,
       employeeId: user.employeeId,
-      email: user.email,
       pwc: Boolean(user.forcePasswordChange)
     },
     process.env.JWT_SECRET,
