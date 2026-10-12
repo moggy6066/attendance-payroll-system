@@ -3,10 +3,18 @@
 # The app is served on http://<host>:${APP_PORT:-8080}; the API is proxied under /api.
 # Postgres and the backend are NOT published on the host network.
 
+# Rotate container logs so they cannot fill the disk (3 x 10 MB per service).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -25,6 +33,7 @@ services:
       context: .
       dockerfile: server/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hr_attendance_db}?schema=public
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see DOCKER.md)}
@@ -39,6 +48,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
   frontend:
     build:
@@ -47,10 +62,12 @@ services:
       args:
         VITE_API_URL: /api
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8080}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   # Optional HTTPS without a domain:  docker compose --profile https up -d
   # SITE_ADDRESS in .env, e.g. 203-0-113-10.sslip.io (your server's public IP with dashes)
@@ -58,6 +75,7 @@ services:
     image: caddy:2-alpine
     profiles: ["https"]
     restart: unless-stopped
+    logging: *default-logging
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-set-SITE_ADDRESS-in-env.invalid}
     ports:

@@ -85,6 +85,26 @@ docker compose exec -T postgres pg_dump -U postgres -d hr_attendance_db | gzip >
 docker compose run --rm -e DB_PUSH=false backend npm run mark-absences
 ```
 
+### Automatic daily backups (Linux)
+
+```bash
+chmod +x scripts/backup.sh
+./scripts/backup.sh                       # test once: backups/hr-YYYY-MM-DD_HHMM.sql.gz
+crontab -e                                # then add:
+30 2 * * * cd /opt/attendance-payroll-system && ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+`KEEP_DAYS` (default 14) controls retention. A backup that only lives on the same server is not a
+backup: set `RCLONE_REMOTE` (e.g. `gdrive:hr-backups`, after `rclone config`) to copy every file
+off-site. Test a restore on another machine at least once.
+
+### Health and logs
+
+`docker compose ps` shows `healthy` for postgres and backend (`/api/health`). The frontend only
+starts after the backend is healthy. Container logs rotate at 3 x 10 MB per service.
+For an outside alert when the app goes down, point a free uptime monitor (e.g. UptimeRobot) at
+`https://<your-site>/api/health`.
+
 Restore a backup (replaces current data):
 
 ```bash

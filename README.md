@@ -19,6 +19,12 @@ npm install
 npm run dev
 ```
 
+## Local database (Docker)
+```bash
+docker compose -f docker-compose.dev.yml up -d   # PostgreSQL on 127.0.0.1:5432 (postgres/postgres)
+```
+Use `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_attendance_db?schema=public"` in `server/.env`.
+
 ## Backend setup
 ```bash
 cd server
