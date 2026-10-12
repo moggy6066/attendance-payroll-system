@@ -1,6 +1,6 @@
 # Build from the repository root:  docker compose build frontend
 #   (or: docker build -f client/Dockerfile .)
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/

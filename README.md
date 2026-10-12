@@ -19,14 +19,23 @@ npm install
 npm run dev
 ```
 
+## Local database (Docker)
+```bash
+docker compose -f docker-compose.dev.yml up -d   # PostgreSQL on 127.0.0.1:5432 (postgres/postgres)
+```
+Use `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_attendance_db?schema=public"` in `server/.env`.
+
 ## Backend setup
 ```bash
 cd server
 cp .env.example .env
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 node src/seed.js
 ```
+
+Before seeding, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (min. 12 characters) in `server/.env`.
+For local demo data add `SEED_DEMO=true` (ignored in production; demo password `Demo@12345` or `DEMO_PASSWORD`).
 
 ## Application URLs
 - Frontend: http://localhost:5173

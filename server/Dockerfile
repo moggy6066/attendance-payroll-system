@@ -1,7 +1,7 @@
 # Build from the repository root:  docker compose build backend
 #   (or: docker build -f server/Dockerfile .)
 # The npm lockfile lives at the root (npm workspaces), so the context must be the root.
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN apk add --no-cache openssl tzdata
 ENV NODE_ENV=production \
