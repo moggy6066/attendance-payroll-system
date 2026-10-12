@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Tests + client build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (lockfile only)
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: server
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        working-directory: server
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+
+      - name: Server tests
+        run: npm test --workspace server
+
+      - name: Client build
+        run: npm run build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: |
+          printf 'JWT_SECRET=%s\nPOSTGRES_PASSWORD=ci\n' "$(openssl rand -hex 32)" > .env
+          docker compose config --quiet
+
+      - name: Build backend image
+        run: docker build -f server/Dockerfile -t aps-backend:ci .
+
+      - name: Build frontend image
+        run: docker build -f client/Dockerfile -t aps-frontend:ci .
