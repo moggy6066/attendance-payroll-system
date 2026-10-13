@@ -16,6 +16,21 @@ function applySecurity(app, env = process.env) {
   app.disable('x-powered-by');
   app.set('trust proxy', parseTrustProxy(env.TRUST_PROXY));
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
+  app.use('/api', createApiLimiter(env));
+}
+
+// General per-IP request limit for the whole API (generous: normal use never hits it).
+// Protects authenticated endpoints from scripted abuse. API_RATE_LIMIT = requests/minute.
+function createApiLimiter(env = process.env) {
+  const limit = Number(env.API_RATE_LIMIT) > 0 ? Number(env.API_RATE_LIMIT) : 300;
+  return rateLimit({
+    windowMs: 60 * 1000,
+    limit,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: (req) => req.path === '/health',
+    message: { message: 'Too many requests. Please slow down.' }
+  });
 }
 
 // Failed login attempts per client IP; successful logins do not count.
@@ -31,4 +46,4 @@ function createLoginLimiter(env = process.env) {
   });
 }
 
-module.exports = { applySecurity, createLoginLimiter, parseTrustProxy };
+module.exports = { applySecurity, createLoginLimiter, createApiLimiter, parseTrustProxy };

@@ -11,6 +11,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "generate": "prisma generate",
+    "validate": "prisma validate",
     "seed": "node src/seed.js",
     "test": "node --test test/*.test.js",
     "test:api": "node --test --test-concurrency=1 test-api/*.test.js",

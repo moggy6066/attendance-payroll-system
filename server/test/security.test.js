@@ -54,3 +54,20 @@ test('parseTrustProxy', () => {
   assert.equal(parseTrustProxy('2'), 2);
   assert.equal(parseTrustProxy('false'), false);
 });
+
+test('general API limiter returns 429 above API_RATE_LIMIT and skips /api/health', async () => {
+  const app = express();
+  applySecurity(app, { TRUST_PROXY: '0', API_RATE_LIMIT: '3' });
+  app.get('/api/x', (req, res) => res.json({ ok: true }));
+  app.get('/api/health', (req, res) => res.json({ ok: true }));
+  const server = await new Promise((r) => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const codes = [];
+    for (let i = 0; i < 4; i++) codes.push((await fetch(`${base}/api/x`)).status);
+    assert.deepEqual(codes, [200, 200, 200, 429]);
+    for (let i = 0; i < 5; i++) assert.equal((await fetch(`${base}/api/health`)).status, 200);
+  } finally {
+    server.close();
+  }
+});

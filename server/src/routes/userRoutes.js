@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
+const { signToken } = require('../utils/token');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -76,15 +77,20 @@ router.put('/me/password', verifyToken, async (req, res) => {
   const parsed = schema.safeParse(req.body || {});
   if (!parsed.success) return res.status(400).json({ message: 'New password must be at least 8 characters', errors: parsed.error.flatten() });
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId }, include: { role: true } });
     if (!user) return res.status(404).json({ message: 'User not found' });
     const ok = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
     if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
-    await prisma.user.update({
+    if (await bcrypt.compare(parsed.data.newPassword, user.passwordHash)) {
+      return res.status(400).json({ message: 'New password must be different from the current one' });
+    }
+    const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 10), forcePasswordChange: false }
+      data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 10), forcePasswordChange: false },
+      include: { role: true }
     });
-    return res.json({ message: 'Password updated' });
+    // Fresh token without the password-change flag, so the user is not locked out.
+    return res.json({ message: 'Password updated', token: signToken(updated) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update password', error: error.message });
   }

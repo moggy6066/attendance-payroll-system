@@ -57,7 +57,7 @@ docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
 #    only if duplicates were found:
 docker compose run --rm -e DB_MIGRATE=false backend npm run fix-duplicates
 docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates   # must say "No duplicate"
-docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate --accept-data-loss
+docker compose run --rm -e DB_MIGRATE=false backend /app/node_modules/.bin/prisma db push --skip-generate --accept-data-loss
 
 # 5. Start everything
 docker compose up -d
@@ -185,7 +185,7 @@ docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
 #    only if duplicates were found:
 docker compose run --rm -e DB_MIGRATE=false backend npm run fix-duplicates
 docker compose run --rm -e DB_MIGRATE=false backend npm run check-duplicates
-docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate --accept-data-loss
+docker compose run --rm -e DB_MIGRATE=false backend /app/node_modules/.bin/prisma db push --skip-generate --accept-data-loss
 # 4. start
 docker compose up -d
 docker compose logs -f backend      # "Server listening" = OK (Ctrl+C to leave)
@@ -235,14 +235,14 @@ has no migration history, so the first start stops with error **P3005** and prin
 
 ```bash
 ./scripts/backup.sh        # or: docker compose exec -T postgres pg_dump ... | gzip > backups/before-migrations.sql.gz
-docker compose run --rm -e DB_MIGRATE=false backend sh -c 'npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code'
-docker compose run --rm -e DB_MIGRATE=false backend npx prisma migrate resolve --applied 0_init
+docker compose run --rm -e DB_MIGRATE=false backend sh -c '/app/node_modules/.bin/prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code'
+docker compose run --rm -e DB_MIGRATE=false backend /app/node_modules/.bin/prisma migrate resolve --applied 0_init
 docker compose up -d
 ```
 
 `migrate diff` must exit with code 0 (no differences). If it prints a missing unique index on
 attendance, run the duplicate check/fix from the upgrade section first, then
-`docker compose run --rm -e DB_MIGRATE=false backend npx prisma db push --skip-generate`, and repeat
+`docker compose run --rm -e DB_MIGRATE=false backend /app/node_modules/.bin/prisma db push --skip-generate`, and repeat
 the diff. Only then run `migrate resolve`.
 
 Changing the schema from now on (developers): edit `schema.prisma`, run

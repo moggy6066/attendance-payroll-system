@@ -13,7 +13,12 @@ export default function ProfilePage() {
     if (pw.newPassword !== pw.confirm) return setMsg({ type: 'error', text: 'كلمتا المرور غير متطابقتين' });
     setSaving(true);
     try {
-      await api.put('/users/me/password', { currentPassword: pw.currentPassword, newPassword: pw.newPassword });
+      const { data } = await api.put('/users/me/password', { currentPassword: pw.currentPassword, newPassword: pw.newPassword });
+      if (data?.token) localStorage.setItem('token', data.token);
+      if (me?.forcePasswordChange) {
+        window.location.href = '/dashboard';
+        return;
+      }
       setMsg({ type: 'success', text: 'تم تغيير كلمة المرور' });
       setPw({ currentPassword: '', newPassword: '', confirm: '' });
     } catch (err) {
