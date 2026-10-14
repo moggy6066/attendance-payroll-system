@@ -45,9 +45,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white">
-            HR
-          </div>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white">HR</div>
           <h1 className="text-2xl font-bold text-slate-900">نظام الحضور والانصراف</h1>
           <p className="mt-2 text-sm text-slate-500">إدارة الموظفين والرواتب والإجازات</p>
         </div>
@@ -87,9 +85,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-500">
-          <Link to="/forgot-password" className="text-blue-600 hover:underline">
-            نسيت كلمة المرور؟
-          </Link>
+          <Link to="/forgot-password" className="text-blue-600 hover:underline">نسيت كلمة المرور؟</Link>
         </div>
       </div>
     </div>
