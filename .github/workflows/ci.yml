@@ -121,3 +121,75 @@ jobs:
       - name: Unit + API tests with coverage (min 50% lines)
         run: npm run test:coverage --workspace server
 
+  frontend-unit:
+    name: Frontend unit tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Vitest
+        run: npm test --workspace client
+
+  e2e:
+    name: E2E (Playwright + PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/e2e?schema=public
+      TZ: Africa/Cairo
+      APP_TIMEZONE: Africa/Cairo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npm run generate --workspace server
+
+      - name: Apply migrations to the E2E database
+        run: npm run migrate:deploy --workspace server
+
+      - name: Install Chromium for Playwright (version pinned in client/package.json)
+        run: node node_modules/playwright/cli.js install --with-deps chromium
+
+      - name: Playwright tests
+        run: |
+          JWT_SECRET="$(openssl rand -hex 32)"
+          export JWT_SECRET
+          npm run test:e2e --workspace client
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: client/playwright-report/
+          retention-days: 7
+

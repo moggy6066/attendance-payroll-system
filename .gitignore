@@ -11,3 +11,8 @@ client/node_modules
 server/node_modules
 
 backups/
+
+# Test artifacts
+client/test-results/
+client/playwright-report/
+client/coverage/
