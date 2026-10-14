@@ -19,12 +19,18 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
-    "concurrently": "^9.0.1",
+    "concurrently": "^9.2.5",
     "eslint": "9.39.5",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
     "globals": "16.5.0",
     "prettier": "3.9.10"
+  },
+  "allowScripts": {
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "prisma": true,
+    "esbuild": true
   }
 }
