@@ -20,8 +20,14 @@ const createEmployeeSchema = z.object({
   jobTitle: z.string(),
   salary: z.coerce.number().min(0),
   hireDate: z.string().min(10),
-  shiftStart: z.string().regex(/^\d{1,2}:\d{2}$/).default('08:00'),
-  shiftEnd: z.string().regex(/^\d{1,2}:\d{2}$/).default('17:00'),
+  shiftStart: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}$/)
+    .default('08:00'),
+  shiftEnd: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}$/)
+    .default('17:00'),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']).optional()
 });
 

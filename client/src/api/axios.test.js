@@ -13,13 +13,23 @@ describe('api client', () => {
   it('adds the bearer token to requests', async () => {
     localStorage.setItem('token', 'abc');
     let seen;
-    await api.get('/x', { adapter: (config) => { seen = config.headers.Authorization; return respond(200)(config); } });
+    await api.get('/x', {
+      adapter: (config) => {
+        seen = config.headers.Authorization;
+        return respond(200)(config);
+      }
+    });
     expect(seen).toBe('Bearer abc');
   });
 
   it('sends no Authorization header without a token', async () => {
     let seen = 'unset';
-    await api.get('/x', { adapter: (config) => { seen = config.headers.Authorization; return respond(200)(config); } });
+    await api.get('/x', {
+      adapter: (config) => {
+        seen = config.headers.Authorization;
+        return respond(200)(config);
+      }
+    });
     expect(seen).toBeUndefined();
   });
 

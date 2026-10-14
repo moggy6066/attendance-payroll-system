@@ -18,11 +18,17 @@ function makeApp(env) {
   applySecurity(app, { TRUST_PROXY: '0' });
   app.use(express.json());
   app.post('/login', createLoginLimiter(env), (req, res) =>
-    req.body.password === 'ok' ? res.json({ ok: true }) : res.status(401).json({ message: 'bad' }));
+    req.body.password === 'ok' ? res.json({ ok: true }) : res.status(401).json({ message: 'bad' })
+  );
   return app;
 }
 
-const post = (url, password) => fetch(`${url}/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password }) });
+const post = (url, password) =>
+  fetch(`${url}/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
 
 test('sets security headers and hides x-powered-by', async () => {
   await withServer(makeApp({}), async (url) => {
@@ -60,7 +66,9 @@ test('general API limiter returns 429 above API_RATE_LIMIT and skips /api/health
   applySecurity(app, { TRUST_PROXY: '0', API_RATE_LIMIT: '3' });
   app.get('/api/x', (req, res) => res.json({ ok: true }));
   app.get('/api/health', (req, res) => res.json({ ok: true }));
-  const server = await new Promise((r) => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+  const server = await new Promise((r) => {
+    const s = app.listen(0, '127.0.0.1', () => r(s));
+  });
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
     const codes = [];

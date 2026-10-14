@@ -1,8 +1,22 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import {
-  Alert, DataTable, Field, LEAVE_STATUS, LEAVE_TYPES, Modal, PageHeader, StatusBadge, btnPrimary, btnSecondary,
-  currentUser, errorMessage, fmtDate, inputClass, isAdmin, useApi
+  Alert,
+  DataTable,
+  Field,
+  LEAVE_STATUS,
+  LEAVE_TYPES,
+  Modal,
+  PageHeader,
+  StatusBadge,
+  btnPrimary,
+  btnSecondary,
+  currentUser,
+  errorMessage,
+  fmtDate,
+  inputClass,
+  isAdmin,
+  useApi
 } from '../components/ui';
 
 const emptyForm = { type: 'ANNUAL', startDate: '', endDate: '', reason: '' };
@@ -18,9 +32,8 @@ export default function LeavePage() {
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const days = form.startDate && form.endDate
-    ? Math.round((new Date(form.endDate) - new Date(form.startDate)) / 86400000) + 1
-    : 0;
+  const days =
+    form.startDate && form.endDate ? Math.round((new Date(form.endDate) - new Date(form.startDate)) / 86400000) + 1 : 0;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -61,18 +74,34 @@ export default function LeavePage() {
     { label: 'من', render: (r) => fmtDate(r.startDate) },
     { label: 'إلى', render: (r) => fmtDate(r.endDate) },
     { label: 'الأيام', key: 'days' },
-    { label: 'السبب', render: (r) => <span className="block max-w-xs truncate" title={r.reason}>{r.reason}</span> },
+    {
+      label: 'السبب',
+      render: (r) => (
+        <span className="block max-w-xs truncate" title={r.reason}>
+          {r.reason}
+        </span>
+      )
+    },
     { label: 'الحالة', render: (r) => <StatusBadge map={LEAVE_STATUS} value={r.status} /> },
     ...(admin
-      ? [{
-          label: 'الإجراء',
-          render: (r) => r.status === 'PENDING' ? (
-            <div className="flex gap-3">
-              <button className="text-emerald-600" onClick={() => decide(r, 'approve')}>موافقة</button>
-              <button className="text-red-600" onClick={() => decide(r, 'reject')}>رفض</button>
-            </div>
-          ) : '—'
-        }]
+      ? [
+          {
+            label: 'الإجراء',
+            render: (r) =>
+              r.status === 'PENDING' ? (
+                <div className="flex gap-3">
+                  <button className="text-emerald-600" onClick={() => decide(r, 'approve')}>
+                    موافقة
+                  </button>
+                  <button className="text-red-600" onClick={() => decide(r, 'reject')}>
+                    رفض
+                  </button>
+                </div>
+              ) : (
+                '—'
+              )
+          }
+        ]
       : [])
   ];
 
@@ -81,12 +110,28 @@ export default function LeavePage() {
       <PageHeader title="إدارة الإجازات">
         <select className={`${inputClass} w-44`} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">كل الطلبات</option>
-          {Object.entries(LEAVE_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+          {Object.entries(LEAVE_STATUS).map(([k, [l]]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
         </select>
-        {user?.employee && <button className={btnPrimary} onClick={() => { setFormError(''); setOpen(true); }}>طلب إجازة</button>}
+        {user?.employee && (
+          <button
+            className={btnPrimary}
+            onClick={() => {
+              setFormError('');
+              setOpen(true);
+            }}
+          >
+            طلب إجازة
+          </button>
+        )}
       </PageHeader>
 
-      <Alert type="success" onClose={() => setNotice('')}>{notice}</Alert>
+      <Alert type="success" onClose={() => setNotice('')}>
+        {notice}
+      </Alert>
       <Alert>{error}</Alert>
       <DataTable columns={columns} rows={data} loading={loading} empty="لا توجد طلبات" />
 
@@ -94,19 +139,57 @@ export default function LeavePage() {
         <Alert>{formError}</Alert>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           <Field label="نوع الإجازة">
-            <select className={inputClass} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              {Object.entries(LEAVE_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            <select
+              className={inputClass}
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+            >
+              {Object.entries(LEAVE_TYPES).map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
             </select>
           </Field>
           <div className="flex items-end text-sm text-slate-500">{days > 0 ? `عدد الأيام: ${days}` : ''}</div>
-          <Field label="من *"><input required type="date" className={inputClass} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></Field>
-          <Field label="إلى *"><input required type="date" min={form.startDate} className={inputClass} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></Field>
+          <Field label="من *">
+            <input
+              required
+              type="date"
+              className={inputClass}
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            />
+          </Field>
+          <Field label="إلى *">
+            <input
+              required
+              type="date"
+              min={form.startDate}
+              className={inputClass}
+              value={form.endDate}
+              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+            />
+          </Field>
           <div className="md:col-span-2">
-            <Field label="السبب *"><textarea required minLength={3} rows={3} className={inputClass} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></Field>
+            <Field label="السبب *">
+              <textarea
+                required
+                minLength={3}
+                rows={3}
+                className={inputClass}
+                value={form.reason}
+                onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              />
+            </Field>
           </div>
           <div className="flex gap-2 md:col-span-2">
-            <button type="submit" className={btnPrimary} disabled={saving}>{saving ? 'جارٍ الإرسال...' : 'إرسال'}</button>
-            <button type="button" className={btnSecondary} onClick={() => setOpen(false)}>إلغاء</button>
+            <button type="submit" className={btnPrimary} disabled={saving}>
+              {saving ? 'جارٍ الإرسال...' : 'إرسال'}
+            </button>
+            <button type="button" className={btnSecondary} onClick={() => setOpen(false)}>
+              إلغاء
+            </button>
           </div>
         </form>
       </Modal>

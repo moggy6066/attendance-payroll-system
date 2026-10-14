@@ -56,15 +56,17 @@ export default function DashboardPage() {
   const n = (v) => (typeof v === 'number' ? v : 0);
   const leaveData = {
     labels: ['حاضر', 'متأخر', 'غائب', 'إجازة'],
-    datasets: [{
-      data: [
-        Math.max(0, n(summary.presentToday) - n(summary.lateEmployees)),
-        n(summary.lateEmployees),
-        n(summary.absentToday),
-        n(summary.onLeaveToday)
-      ],
-      backgroundColor: ['#2563eb', '#f59e0b', '#ef4444', '#10b981']
-    }]
+    datasets: [
+      {
+        data: [
+          Math.max(0, n(summary.presentToday) - n(summary.lateEmployees)),
+          n(summary.lateEmployees),
+          n(summary.absentToday),
+          n(summary.onLeaveToday)
+        ],
+        backgroundColor: ['#2563eb', '#f59e0b', '#ef4444', '#10b981']
+      }
+    ]
   };
 
   return (
@@ -96,7 +98,11 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-3">
         <StatCard title="نسبة الحضور اليوم" value={`${summary.attendanceRate ?? 0}%`} tone="green" />
-        <StatCard title={`إجمالي آخر رواتب${summary.payrollPeriod ? ` (${summary.payrollPeriod})` : ''}`} value={Number(summary.totalPayroll || 0).toLocaleString('ar-EG')} tone="blue" />
+        <StatCard
+          title={`إجمالي آخر رواتب${summary.payrollPeriod ? ` (${summary.payrollPeriod})` : ''}`}
+          value={Number(summary.totalPayroll || 0).toLocaleString('ar-EG')}
+          tone="blue"
+        />
         <StatCard title="عدد الأقسام" value={summary.departments ?? '—'} tone="slate" />
       </div>
     </div>

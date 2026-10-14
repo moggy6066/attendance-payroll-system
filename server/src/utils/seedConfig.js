@@ -9,7 +9,9 @@ const DEFAULT_DEMO_PASSWORD = 'Demo@12345';
 function resolveSeedConfig(env = process.env) {
   const isProduction = env.NODE_ENV === 'production';
   const demoRequested = String(env.SEED_DEMO || '').toLowerCase() === 'true';
-  const email = String(env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const email = String(env.ADMIN_EMAIL || '')
+    .trim()
+    .toLowerCase();
   const password = String(env.ADMIN_PASSWORD || '');
 
   const problems = [];
@@ -17,13 +19,16 @@ function resolveSeedConfig(env = process.env) {
   if (password.length < 12) problems.push('ADMIN_PASSWORD is missing or shorter than 12 characters');
   if (/change_me/i.test(password)) problems.push('ADMIN_PASSWORD still contains the CHANGE_ME placeholder');
   if (problems.length) {
-    const error = new Error(`Seed aborted:\n  - ${problems.join('\n  - ')}\nSet them in .env (see .env.docker.example / server/.env.example).`);
+    const error = new Error(
+      `Seed aborted:\n  - ${problems.join('\n  - ')}\nSet them in .env (see .env.docker.example / server/.env.example).`
+    );
     error.code = 'SEED_CONFIG';
     throw error;
   }
 
   const warnings = [];
-  if (demoRequested && isProduction) warnings.push('SEED_DEMO=true is ignored because NODE_ENV=production (no demo users in production).');
+  if (demoRequested && isProduction)
+    warnings.push('SEED_DEMO=true is ignored because NODE_ENV=production (no demo users in production).');
 
   return {
     admin: { email, password },

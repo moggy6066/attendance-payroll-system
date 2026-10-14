@@ -8,26 +8,44 @@ const YEAR = 2025;
 const day = (d) => new Date(Date.UTC(YEAR, MONTH - 1, d));
 
 let api;
-let admin; let alice; let bob;
+let admin;
+let alice;
+let bob;
 let tokens = {};
 
 test.before(async () => {
   await resetDb();
   admin = await createUser({ role: 'ADMIN', email: 'admin@test.local' });
   // salary 22000 / 22 working days = daily rate 1000 (easy arithmetic)
-  alice = await createUser({ role: 'EMPLOYEE', email: 'alice@test.local', employee: { employeeNumber: 'E001', fullName: 'Alice', salary: 22000 } });
-  bob = await createUser({ role: 'EMPLOYEE', email: 'bob@test.local', employee: { employeeNumber: 'E002', fullName: 'Bob', salary: 11000 } });
+  alice = await createUser({
+    role: 'EMPLOYEE',
+    email: 'alice@test.local',
+    employee: { employeeNumber: 'E001', fullName: 'Alice', salary: 22000 }
+  });
+  bob = await createUser({
+    role: 'EMPLOYEE',
+    email: 'bob@test.local',
+    employee: { employeeNumber: 'E002', fullName: 'Bob', salary: 11000 }
+  });
 
   // Alice: 3 PRESENT, 2 LATE, 1 ABSENT in the month, plus 90 overtime minutes.
   // One record in the following month must be ignored.
   const rows = [
-    [1, 'PRESENT', 30], [2, 'PRESENT', 60], [3, 'PRESENT', 0],
-    [4, 'LATE', 0], [5, 'LATE', 0], [6, 'ABSENT', 0]
+    [1, 'PRESENT', 30],
+    [2, 'PRESENT', 60],
+    [3, 'PRESENT', 0],
+    [4, 'LATE', 0],
+    [5, 'LATE', 0],
+    [6, 'ABSENT', 0]
   ];
   for (const [d, status, ot] of rows) {
-    await prisma.attendance.create({ data: { employeeId: alice.employee.id, date: day(d), status, overtimeMinutes: ot } });
+    await prisma.attendance.create({
+      data: { employeeId: alice.employee.id, date: day(d), status, overtimeMinutes: ot }
+    });
   }
-  await prisma.attendance.create({ data: { employeeId: alice.employee.id, date: new Date(Date.UTC(YEAR, MONTH, 1)), status: 'ABSENT' } });
+  await prisma.attendance.create({
+    data: { employeeId: alice.employee.id, date: new Date(Date.UTC(YEAR, MONTH, 1)), status: 'ABSENT' }
+  });
 
   api = await startServer();
   tokens = {
@@ -63,7 +81,9 @@ test('payroll: admin generates correct amounts', async () => {
   assert.equal(r.body.generated, 2);
   assert.equal(r.body.skipped, 0);
 
-  const a = await prisma.payroll.findFirst({ where: { employeeId: alice.employee.id, month: String(MONTH), year: YEAR } });
+  const a = await prisma.payroll.findFirst({
+    where: { employeeId: alice.employee.id, month: String(MONTH), year: YEAR }
+  });
   assert.ok(a, 'payroll row for Alice');
   assert.equal(a.presentDays, 5); // PRESENT + LATE
   assert.equal(a.absentDays, 1);
@@ -74,12 +94,17 @@ test('payroll: admin generates correct amounts', async () => {
   assert.equal(Number(a.netSalary), 20900);
   assert.equal(a.paid, false);
 
-  const b = await prisma.payroll.findFirst({ where: { employeeId: bob.employee.id, month: String(MONTH), year: YEAR } });
+  const b = await prisma.payroll.findFirst({
+    where: { employeeId: bob.employee.id, month: String(MONTH), year: YEAR }
+  });
   assert.equal(Number(b.netSalary), 11000); // no attendance records → no deductions
 });
 
 test('payroll: generating the same month again skips existing records', async () => {
-  const r = await api.call('POST', '/payroll/generate', { token: tokens.admin, body: { month: String(MONTH), year: String(YEAR) } });
+  const r = await api.call('POST', '/payroll/generate', {
+    token: tokens.admin,
+    body: { month: String(MONTH), year: String(YEAR) }
+  });
   assert.equal(r.status, 200);
   assert.equal(r.body.generated, 0);
   assert.equal(r.body.skipped, 2);
@@ -98,7 +123,7 @@ test('payroll: an employee sees only their own payroll', async () => {
   assert.ok(r2.body.every((p) => p.employeeId === alice.employee.id));
 });
 
-test('payroll: an employee cannot open another employee\'s payroll by id', async () => {
+test("payroll: an employee cannot open another employee's payroll by id", async () => {
   const bobPay = await prisma.payroll.findFirst({ where: { employeeId: bob.employee.id } });
   const r = await api.call('GET', `/payroll/${bobPay.id}`, { token: tokens.alice });
   assert.equal(r.status, 403);

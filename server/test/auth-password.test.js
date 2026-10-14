@@ -21,8 +21,19 @@ function run(method, url, claims) {
   const token = jwt.sign({ userId: 'u1', role: 'EMPLOYEE', ...claims }, process.env.JWT_SECRET);
   const req = { method, originalUrl: url, headers: { authorization: `Bearer ${token}` } };
   const out = { status: 200, body: null, nextCalled: false };
-  const res = { status(c) { out.status = c; return this; }, json(b) { out.body = b; return this; } };
-  verifyToken(req, res, () => { out.nextCalled = true; });
+  const res = {
+    status(c) {
+      out.status = c;
+      return this;
+    },
+    json(b) {
+      out.body = b;
+      return this;
+    }
+  };
+  verifyToken(req, res, () => {
+    out.nextCalled = true;
+  });
   return out;
 }
 
@@ -45,7 +56,16 @@ test('tokens without the flag (including tokens issued before this change) work 
 });
 
 test('missing or invalid token is 401', () => {
-  const res = { s: 0, status(c) { this.s = c; return this; }, json() { return this; } };
+  const res = {
+    s: 0,
+    status(c) {
+      this.s = c;
+      return this;
+    },
+    json() {
+      return this;
+    }
+  };
   verifyToken({ method: 'GET', originalUrl: '/api/x', headers: { authorization: 'Bearer nope' } }, res, () => {});
   assert.equal(res.s, 401);
 });

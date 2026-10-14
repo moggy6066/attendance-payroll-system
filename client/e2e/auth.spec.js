@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import { loadUsers, login } from './fixtures.js';
 
 let users;
-test.beforeAll(() => { users = loadUsers(); });
+test.beforeAll(() => {
+  users = loadUsers();
+});
 
 test('wrong password shows an error and stays on /login', async ({ page }) => {
   await login(page, users.admin.email, 'definitely-wrong');
