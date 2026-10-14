@@ -1,0 +1,78 @@
+name: Docker publish
+
+# Builds the backend and frontend images and pushes them to Docker Hub after every
+# push to main. Replaces github/workflows/build.yml (PR #28), which sat outside
+# .github/ and so never ran, and pointed at a root Dockerfile that does not exist.
+#
+# Optional setup (Settings -> Secrets and variables -> Actions):
+#   variable DOCKER_USER  = your Docker Hub username
+#   secret   DOCKER_PAT   = a Docker Hub access token (Read & Write)
+# Without both, the job prints a notice and skips the push instead of failing.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USER: ${{ vars.DOCKER_USER }}
+      HAS_PAT: ${{ secrets.DOCKER_PAT != '' }}
+    steps:
+      - name: Check Docker Hub credentials
+        id: creds
+        run: |
+          if [ -n "$DOCKER_USER" ] && [ "$HAS_PAT" = "true" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Docker publish skipped::Set the DOCKER_USER variable and DOCKER_PAT secret to push images to Docker Hub."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.creds.outputs.ready == 'true'
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.creds.outputs.ready == 'true'
+
+      - uses: docker/login-action@v3
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          username: ${{ vars.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Backend image
+        if: steps.creds.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.DOCKER_USER }}/attendance-payroll-backend:latest
+            ${{ vars.DOCKER_USER }}/attendance-payroll-backend:${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Frontend image
+        if: steps.creds.outputs.ready == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: client/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.DOCKER_USER }}/attendance-payroll-frontend:latest
+            ${{ vars.DOCKER_USER }}/attendance-payroll-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
