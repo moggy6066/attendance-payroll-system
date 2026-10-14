@@ -40,10 +40,13 @@ describe('App routing', () => {
     expect(screen.getByText('صفحة الرواتب')).toBeInTheDocument();
   });
 
-  it.each(['/employees', '/settings', '/users', '/reports'])('redirects an employee away from admin page %s', (path) => {
-    renderAt(path, { role: 'EMPLOYEE' });
-    expect(screen.getByText('صفحة لوحة التحكم')).toBeInTheDocument();
-  });
+  it.each(['/employees', '/settings', '/users', '/reports'])(
+    'redirects an employee away from admin page %s',
+    (path) => {
+      renderAt(path, { role: 'EMPLOYEE' });
+      expect(screen.getByText('صفحة لوحة التحكم')).toBeInTheDocument();
+    }
+  );
 
   it('lets an admin open admin pages', () => {
     renderAt('/employees', { role: 'ADMIN' });

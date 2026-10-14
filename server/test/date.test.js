@@ -2,7 +2,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 process.env.APP_TIMEZONE = 'Africa/Cairo';
-const { localDay, parseDay, monthRange, daysBetweenInclusive, formatDay, hhmmToMinutes, localMinutesOfDay } = require('../src/utils/date');
+const {
+  localDay,
+  parseDay,
+  monthRange,
+  daysBetweenInclusive,
+  formatDay,
+  hhmmToMinutes,
+  localMinutesOfDay
+} = require('../src/utils/date');
 
 test('localDay uses the Cairo calendar day, not the UTC day', () => {
   // 2026-10-03 22:30 UTC is already 2026-10-04 01:30 in Cairo (UTC+3)

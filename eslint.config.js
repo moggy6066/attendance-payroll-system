@@ -7,7 +7,10 @@ const reactHooks = require('eslint-plugin-react-hooks');
 const prettier = require('eslint-config-prettier');
 
 const sharedRules = {
-  'no-unused-vars': ['error', { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true }],
+  'no-unused-vars': [
+    'error',
+    { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true }
+  ],
   'no-empty': ['error', { allowEmptyCatch: true }],
   eqeqeq: ['error', 'smart'],
   'no-var': 'error',
@@ -16,7 +19,14 @@ const sharedRules = {
 
 module.exports = [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', 'client/test-results/**', 'client/playwright-report/**', 'backups/**']
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/coverage/**',
+      'client/test-results/**',
+      'client/playwright-report/**',
+      'backups/**'
+    ]
   },
   js.configs.recommended,
 

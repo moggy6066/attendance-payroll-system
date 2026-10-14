@@ -43,7 +43,7 @@ export default function Layout({ children }) {
             <p className="mt-2 text-sm text-slate-300">إدارة الموظفين والرواتب</p>
           </div>
 
-          <nav className="p-4 space-y-2"> 
+          <nav className="p-4 space-y-2">
             {filteredNav.map((item) => (
               <NavLink
                 key={item.path}

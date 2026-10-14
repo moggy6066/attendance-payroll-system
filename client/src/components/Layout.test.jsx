@@ -12,13 +12,23 @@ function renderLayout(role) {
     <MemoryRouter initialEntries={['/dashboard']}>
       <Routes>
         <Route path="/login" element={<div>LOGIN</div>} />
-        <Route path="*" element={<Layout><div>content</div></Layout>} />
+        <Route
+          path="*"
+          element={
+            <Layout>
+              <div>content</div>
+            </Layout>
+          }
+        />
       </Routes>
     </MemoryRouter>
   );
 }
 
-const navLabels = () => within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
+const navLabels = () =>
+  within(screen.getByRole('navigation'))
+    .getAllByRole('link')
+    .map((a) => a.textContent);
 
 describe('Layout', () => {
   it('shows only the allowed menu items to an employee', () => {

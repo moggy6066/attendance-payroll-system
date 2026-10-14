@@ -40,13 +40,41 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/employees" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><EmployeesPage /></ProtectedRoute>} />
+                <Route
+                  path="/employees"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <EmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/leave" element={<LeavePage />} />
                 <Route path="/payroll" element={<PayrollPage />} />
-                <Route path="/users" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><UsersPage /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><ReportsPage /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><SettingsPage /></ProtectedRoute>} />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <UsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

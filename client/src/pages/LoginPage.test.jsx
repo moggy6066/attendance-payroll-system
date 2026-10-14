@@ -43,7 +43,10 @@ describe('LoginPage', () => {
   });
 
   it('shows the server error and stores nothing when login fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ message: 'Invalid email or password' }) }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({ message: 'Invalid email or password' }) })
+    );
     const user = userEvent.setup();
     renderLogin();
     await fillAndSubmit(user);

@@ -10,7 +10,10 @@ test('requires ADMIN_EMAIL and ADMIN_PASSWORD', () => {
 
 test('rejects short or placeholder passwords', () => {
   assert.throws(() => resolveSeedConfig({ ADMIN_EMAIL: 'a@b.co', ADMIN_PASSWORD: 'short' }), /12 characters/);
-  assert.throws(() => resolveSeedConfig({ ADMIN_EMAIL: 'a@b.co', ADMIN_PASSWORD: 'CHANGE_ME_please_now' }), /placeholder/);
+  assert.throws(
+    () => resolveSeedConfig({ ADMIN_EMAIL: 'a@b.co', ADMIN_PASSWORD: 'CHANGE_ME_please_now' }),
+    /placeholder/
+  );
 });
 
 test('normalizes the admin email', () => {

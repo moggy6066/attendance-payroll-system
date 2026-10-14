@@ -1,8 +1,22 @@
 import { useState } from 'react';
 import api from '../api/axios';
 import {
-  Alert, DataTable, Field, Modal, PageHeader, ROLES, StatusBadge, USER_STATUS, btnPrimary, btnSecondary,
-  currentRole, currentUser, errorMessage, fmtDate, inputClass, useApi
+  Alert,
+  DataTable,
+  Field,
+  Modal,
+  PageHeader,
+  ROLES,
+  StatusBadge,
+  USER_STATUS,
+  btnPrimary,
+  btnSecondary,
+  currentRole,
+  currentUser,
+  errorMessage,
+  fmtDate,
+  inputClass,
+  useApi
 } from '../components/ui';
 
 const emptyForm = { username: '', email: '', password: '', role: 'EMPLOYEE', status: 'ACTIVE', employeeId: '' };
@@ -18,9 +32,20 @@ export default function UsersPage() {
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const openCreate = () => { setForm(emptyForm); setFormError(''); setModal('create'); };
+  const openCreate = () => {
+    setForm(emptyForm);
+    setFormError('');
+    setModal('create');
+  };
   const openEdit = (u) => {
-    setForm({ username: u.username, email: u.email, password: '', role: u.role, status: u.status, employeeId: u.employeeId || '' });
+    setForm({
+      username: u.username,
+      email: u.email,
+      password: '',
+      role: u.role,
+      status: u.status,
+      employeeId: u.employeeId || ''
+    });
     setFormError('');
     setModal(u);
   };
@@ -70,56 +95,99 @@ export default function UsersPage() {
     { label: 'الحالة', render: (r) => <StatusBadge map={USER_STATUS} value={r.status} /> },
     { label: 'آخر دخول', render: (r) => fmtDate(r.lastLogin) },
     ...(superAdmin
-      ? [{
-          label: 'الإجراء',
-          render: (r) => (
-            <div className="flex gap-3">
-              <button className="text-blue-600" onClick={() => openEdit(r)}>تعديل</button>
-              {r.id !== me.id && <button className="text-red-600" onClick={() => remove(r)}>حذف</button>}
-            </div>
-          )
-        }]
+      ? [
+          {
+            label: 'الإجراء',
+            render: (r) => (
+              <div className="flex gap-3">
+                <button className="text-blue-600" onClick={() => openEdit(r)}>
+                  تعديل
+                </button>
+                {r.id !== me.id && (
+                  <button className="text-red-600" onClick={() => remove(r)}>
+                    حذف
+                  </button>
+                )}
+              </div>
+            )
+          }
+        ]
       : [])
   ];
 
   return (
     <div>
       <PageHeader title="إدارة المستخدمين" subtitle={superAdmin ? '' : 'عرض فقط — التعديل متاح للمدير العام'}>
-        {superAdmin && <button className={btnPrimary} onClick={openCreate}>إضافة مستخدم</button>}
+        {superAdmin && (
+          <button className={btnPrimary} onClick={openCreate}>
+            إضافة مستخدم
+          </button>
+        )}
       </PageHeader>
-      <Alert type="success" onClose={() => setNotice('')}>{notice}</Alert>
+      <Alert type="success" onClose={() => setNotice('')}>
+        {notice}
+      </Alert>
       <Alert>{error}</Alert>
       <DataTable columns={columns} rows={data} loading={loading} />
 
       <Modal open={!!modal} title={modal === 'create' ? 'إضافة مستخدم' : 'تعديل مستخدم'} onClose={() => setModal(null)}>
         <Alert>{formError}</Alert>
         <form onSubmit={save} className="grid gap-4 md:grid-cols-2">
-          <Field label="اسم المستخدم *"><input required minLength={3} className={inputClass} value={form.username} onChange={set('username')} /></Field>
-          <Field label="البريد *"><input required type="email" className={inputClass} value={form.email} onChange={set('email')} /></Field>
-          <Field label={modal === 'create' ? 'كلمة المرور * (8 أحرف على الأقل)' : 'كلمة مرور جديدة (اتركها فارغة للإبقاء)'}>
-            <input type="password" minLength={8} required={modal === 'create'} className={inputClass} value={form.password} onChange={set('password')} />
+          <Field label="اسم المستخدم *">
+            <input required minLength={3} className={inputClass} value={form.username} onChange={set('username')} />
+          </Field>
+          <Field label="البريد *">
+            <input required type="email" className={inputClass} value={form.email} onChange={set('email')} />
+          </Field>
+          <Field
+            label={modal === 'create' ? 'كلمة المرور * (8 أحرف على الأقل)' : 'كلمة مرور جديدة (اتركها فارغة للإبقاء)'}
+          >
+            <input
+              type="password"
+              minLength={8}
+              required={modal === 'create'}
+              className={inputClass}
+              value={form.password}
+              onChange={set('password')}
+            />
           </Field>
           <Field label="الدور">
             <select className={inputClass} value={form.role} onChange={set('role')}>
-              {Object.entries(ROLES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              {Object.entries(ROLES).map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
             </select>
           </Field>
           {modal !== 'create' && (
             <Field label="الحالة">
               <select className={inputClass} value={form.status} onChange={set('status')}>
-                {Object.entries(USER_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+                {Object.entries(USER_STATUS).map(([k, [l]]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
+                ))}
               </select>
             </Field>
           )}
           <Field label="ربط بموظف">
             <select className={inputClass} value={form.employeeId} onChange={set('employeeId')}>
               <option value="">بدون</option>
-              {employees?.map((e) => <option key={e.id} value={e.id}>{e.fullName} ({e.employeeNumber})</option>)}
+              {employees?.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.fullName} ({e.employeeNumber})
+                </option>
+              ))}
             </select>
           </Field>
           <div className="flex gap-2 md:col-span-2">
-            <button type="submit" className={btnPrimary} disabled={saving}>{saving ? 'جارٍ الحفظ...' : 'حفظ'}</button>
-            <button type="button" className={btnSecondary} onClick={() => setModal(null)}>إلغاء</button>
+            <button type="submit" className={btnPrimary} disabled={saving}>
+              {saving ? 'جارٍ الحفظ...' : 'حفظ'}
+            </button>
+            <button type="button" className={btnSecondary} onClick={() => setModal(null)}>
+              إلغاء
+            </button>
           </div>
         </form>
       </Modal>

@@ -71,7 +71,11 @@ async function startServer() {
     });
     const text = await res.text();
     let json = null;
-    try { json = text ? JSON.parse(text) : null; } catch { json = text; }
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = text;
+    }
     return { status: res.status, body: json };
   }
 

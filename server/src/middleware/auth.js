@@ -7,7 +7,9 @@ const PASSWORD_CHANGE_ALLOWED = [
 ];
 
 function isAllowedDuringPasswordChange(req) {
-  const path = String(req.originalUrl || '').split('?')[0].replace(/\/+$/, '');
+  const path = String(req.originalUrl || '')
+    .split('?')[0]
+    .replace(/\/+$/, '');
   return PASSWORD_CHANGE_ALLOWED.some(([method, p]) => req.method === method && path === p);
 }
 
