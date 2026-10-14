@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 const navItems = [
   { label: 'لوحة التحكم', path: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الموظفين', path: '/employees', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'الأقسام', path: '/departments', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'الحضور', path: '/attendance', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الإجازات', path: '/leave', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الرواتب', path: '/payroll', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },

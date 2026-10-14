@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
+import DepartmentsPage from './pages/DepartmentsPage';
 import AttendancePage from './pages/AttendancePage';
 import LeavePage from './pages/LeavePage';
 import PayrollPage from './pages/PayrollPage';
@@ -45,6 +46,14 @@ export default function App() {
                   element={
                     <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
                       <EmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/departments"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <DepartmentsPage />
                     </ProtectedRoute>
                   }
                 />

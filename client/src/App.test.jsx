@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 // Pages are replaced by stubs: these tests cover routing and role guards only.
 vi.mock('./pages/DashboardPage', () => ({ default: () => <div>صفحة لوحة التحكم</div> }));
 vi.mock('./pages/EmployeesPage', () => ({ default: () => <div>صفحة الموظفين</div> }));
+vi.mock('./pages/DepartmentsPage', () => ({ default: () => <div>صفحة الأقسام</div> }));
 vi.mock('./pages/PayrollPage', () => ({ default: () => <div>صفحة الرواتب</div> }));
 vi.mock('./pages/SettingsPage', () => ({ default: () => <div>صفحة الإعدادات</div> }));
 vi.mock('./pages/ProfilePage', () => ({ default: () => <div>صفحة الملف الشخصي</div> }));
@@ -40,7 +41,7 @@ describe('App routing', () => {
     expect(screen.getByText('صفحة الرواتب')).toBeInTheDocument();
   });
 
-  it.each(['/employees', '/settings', '/users', '/reports'])(
+  it.each(['/employees', '/departments', '/settings', '/users', '/reports'])(
     'redirects an employee away from admin page %s',
     (path) => {
       renderAt(path, { role: 'EMPLOYEE' });
@@ -51,6 +52,11 @@ describe('App routing', () => {
   it('lets an admin open admin pages', () => {
     renderAt('/employees', { role: 'ADMIN' });
     expect(screen.getByText('صفحة الموظفين')).toBeInTheDocument();
+  });
+
+  it('lets an admin open the departments page', () => {
+    renderAt('/departments', { role: 'ADMIN' });
+    expect(screen.getByText('صفحة الأقسام')).toBeInTheDocument();
   });
 
   it('shows 404 for unknown paths', () => {
