@@ -88,14 +88,6 @@ export default function LoginPage() {
           <Link to="/forgot-password" className="text-blue-600 hover:underline">نسيت كلمة المرور؟</Link>
         </div>
 
-        <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-          <p className="font-medium">الحسابات الافتراضية:</p>
-          <ul className="mt-2 space-y-1">
-            <li>Super Admin: superadmin@company.com</li>
-            <li>Admin: admin@company.com</li>
-            <li>Employee: employee@company.com</li>
-          </ul>
-        </div>
       </div>
     </div>
   );

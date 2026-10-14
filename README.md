@@ -8,10 +8,10 @@
 - Database: PostgreSQL + Prisma ORM
 - Auth: JWT + RBAC
 
-## Default accounts
-- Super Admin: superadmin@company.com / SuperAdmin@123
-- Admin: admin@company.com / Admin@123
-- Employee: employee@company.com / Employee@123
+## First admin account
+There are no default passwords. `npm run seed --workspace server` creates the first
+super admin from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (at least 12 characters) in `server/.env`.
+Demo users (`SEED_DEMO=true`, never in production) use `DEMO_PASSWORD` — see `server/.env.example`.
 
 ## Install
 ```bash
