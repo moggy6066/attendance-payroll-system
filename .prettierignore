@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+backups
+package-lock.json
+client/test-results
+client/playwright-report
+server/prisma/migrations
+*.md
+.github

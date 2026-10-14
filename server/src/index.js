@@ -205,7 +205,8 @@ app.put('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
   }
 });
 
-app.use((err, req, res, next) => {
+// Express recognises an error handler by its 4 arguments, so `_next` must stay.
+app.use((err, req, res, _next) => {
   console.error(err);
   res.status(500).json({ message: 'Unexpected server error', error: err.message });
 });

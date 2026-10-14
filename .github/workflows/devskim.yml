@@ -27,9 +27,6 @@ jobs:
 
       - name: Run DevSkim scanner
         uses: microsoft/DevSkim-Action@v1
-        with:
-          # Lockfile integrity hashes and local test servers are not findings.
-          ignore-globs: "**/.git/**,**/bin/**,**/package-lock.json,client/e2e/**,client/playwright.config.js,**/*.test.js,**/*.test.jsx"
 
       - name: Upload DevSkim scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
