@@ -36,6 +36,8 @@ jobs:
           format: sarif
           output: results.sarif
           exit-code: 0
+          # Test code uses throwaway credentials and localStorage fixtures by design.
+          skip-path: "**/*.test.js,**/*.test.jsx,client/e2e,client/src/test,server/test,server/test-api"
       # Upload SARIF file generated in previous step
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3

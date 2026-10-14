@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
 
+// Random per run so no credential-looking literal lives in the repo.
+const PASSWORD = crypto.randomUUID();
+
 function renderLogin() {
   return render(
     <MemoryRouter>
@@ -14,7 +17,7 @@ function renderLogin() {
 
 async function fillAndSubmit(user) {
   await user.type(screen.getByPlaceholderText('example@company.com'), 'admin@test.local');
-  await user.type(screen.getByPlaceholderText('**********'), 'secret-pass');
+  await user.type(screen.getByPlaceholderText('**********'), PASSWORD);
   await user.click(screen.getByRole('button', { name: 'تسجيل الدخول' }));
 }
 
@@ -36,7 +39,7 @@ describe('LoginPage', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toMatch(/\/auth\/login$/);
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual({ email: 'admin@test.local', password: 'secret-pass' });
+    expect(JSON.parse(init.body)).toEqual({ email: 'admin@test.local', password: PASSWORD });
   });
 
   it('shows the server error and stores nothing when login fails', async () => {

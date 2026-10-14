@@ -10,6 +10,25 @@ const bcrypt = require('bcryptjs');
 
 const pw = () => randomBytes(12).toString('base64url');
 
+async function createUser(prisma, u, roleId, n) {
+  const employee = u.fullName
+    ? await prisma.employee.create({
+        data: { employeeNumber: `E2E${n}`, fullName: u.fullName, email: u.email, salary: 10000, hireDate: new Date('2025-01-01T00:00:00Z') }
+      })
+    : null;
+  await prisma.user.create({
+    data: {
+      username: u.email.split('@')[0],
+      email: u.email,
+      passwordHash: await bcrypt.hash(u.password, 4),
+      roleId,
+      employeeId: employee ? employee.id : null,
+      status: 'ACTIVE',
+      forcePasswordChange: Boolean(u.forcePasswordChange)
+    }
+  });
+}
+
 export default async function globalSetup() {
   if (!process.env.DATABASE_URL || !process.env.JWT_SECRET) {
     throw new Error('E2E tests need DATABASE_URL (disposable, migrated PostgreSQL) and JWT_SECRET.');
@@ -19,7 +38,8 @@ export default async function globalSetup() {
     const tables = await prisma.$queryRaw`
       SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
     if (tables.length) {
-      await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables.map((t) => `"public"."${t.tablename}"`).join(', ')} RESTART IDENTITY CASCADE`);
+      const list = tables.map((t) => '"public"."' + t.tablename + '"').join(', ');
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
     }
 
     const users = {
@@ -28,26 +48,14 @@ export default async function globalSetup() {
       newcomer: { email: 'new@e2e.local', password: pw(), role: 'EMPLOYEE', fullName: 'موظف جديد', forcePasswordChange: true }
     };
 
-    let n = 1;
-    for (const u of Object.values(users)) {
-      const role = await prisma.role.upsert({ where: { name: u.role }, update: {}, create: { name: u.role } });
-      const employee = u.fullName
-        ? await prisma.employee.create({
-            data: { employeeNumber: `E2E${n++}`, fullName: u.fullName, email: u.email, salary: 10000, hireDate: new Date('2025-01-01T00:00:00Z') }
-          })
-        : null;
-      await prisma.user.create({
-        data: {
-          username: u.email.split('@')[0],
-          email: u.email,
-          passwordHash: await bcrypt.hash(u.password, 4),
-          roleId: role.id,
-          employeeId: employee ? employee.id : null,
-          status: 'ACTIVE',
-          forcePasswordChange: Boolean(u.forcePasswordChange)
-        }
-      });
-    }
+    // Roles first (unique names), then all users in parallel.
+    const roleNames = [...new Set(Object.values(users).map((u) => u.role))];
+    const roles = Object.fromEntries(
+      await Promise.all(
+        roleNames.map(async (name) => [name, await prisma.role.upsert({ where: { name }, update: {}, create: { name } })])
+      )
+    );
+    await Promise.all(Object.values(users).map((u, i) => createUser(prisma, u, roles[u.role].id, i + 1)));
     writeFileSync(FIXTURE_FILE, JSON.stringify(users), { mode: 0o600 });
   } finally {
     await prisma.$disconnect();

@@ -157,7 +157,7 @@ jobs:
         run: npm run migrate:deploy --workspace server
 
       - name: Install Chromium for Playwright (version pinned in client/package.json)
-        run: npm exec --workspace client -- playwright install --with-deps chromium
+        run: node node_modules/playwright/cli.js install --with-deps chromium
 
       - name: Playwright tests
         run: |
