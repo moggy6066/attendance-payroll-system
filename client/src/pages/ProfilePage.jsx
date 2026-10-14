@@ -130,7 +130,7 @@ export default function ProfilePage() {
                 onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
               />
             </Field>
-            <button className={btnPrimary} disabled={saving}>
+            <button type="submit" className={btnPrimary} disabled={saving}>
               {saving ? 'جارٍ الحفظ...' : 'حفظ'}
             </button>
           </form>

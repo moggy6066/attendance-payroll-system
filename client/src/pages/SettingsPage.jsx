@@ -114,7 +114,7 @@ export default function SettingsPage() {
               الزمنية هنا للعرض فقط؛ حساب التواريخ في السيرفر يتبع APP_TIMEZONE في ملف .env.
             </p>
             <div className="md:col-span-2">
-              <button className={btnPrimary} disabled={saving}>
+              <button type="submit" className={btnPrimary} disabled={saving}>
                 {saving ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}
               </button>
             </div>

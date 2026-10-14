@@ -7,9 +7,9 @@ const PASSWORD_CHANGE_ALLOWED = [
 ];
 
 function isAllowedDuringPasswordChange(req) {
-  const path = String(req.originalUrl || '')
-    .split('?')[0]
-    .replace(/\/+$/, '');
+  let path = String(req.originalUrl || '').split('?')[0];
+  // Strip trailing slashes (a loop instead of /\/+$/, which Sonar flags for backtracking).
+  while (path.endsWith('/')) path = path.slice(0, -1);
   return PASSWORD_CHANGE_ALLOWED.some(([method, p]) => req.method === method && path === p);
 }
 
