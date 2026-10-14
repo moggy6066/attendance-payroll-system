@@ -40,7 +40,8 @@ describe('Layout', () => {
 
   it('shows the full menu to an admin', () => {
     renderLayout('ADMIN');
-    expect(navLabels()).toHaveLength(9);
+    expect(navLabels()).toHaveLength(10);
+    expect(navLabels()).toContain('الأقسام');
     expect(navLabels()).toContain('الإعدادات');
   });
 
