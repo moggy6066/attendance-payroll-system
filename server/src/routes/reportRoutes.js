@@ -15,7 +15,12 @@ const LEAVE_STATUS_AR = { PENDING: 'قيد المراجعة', APPROVED: 'موا�
 
 function timeInZone(date) {
   if (!date) return '';
-  return new Intl.DateTimeFormat('en-GB', { timeZone: APP_TIMEZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: APP_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).format(date);
 }
 
 // ---------- report builders (shared by JSON endpoints and Excel export) ----------
@@ -335,7 +340,9 @@ router.get('/export/:type', verifyToken, authorize(ADMINS), async (req, res) => 
     const rows = await spec.build(req.query);
     const { month, year } = monthRange(req.query.month, req.query.year);
     const isDaily = req.params.type === 'attendance-daily';
-    const suffix = isDaily ? formatDay(parseDay(req.query.date) || localDay()) : `${year}-${String(month).padStart(2, '0')}`;
+    const suffix = isDaily
+      ? formatDay(parseDay(req.query.date) || localDay())
+      : `${year}-${String(month).padStart(2, '0')}`;
     const filename = `${req.params.type}-${suffix}.${format}`;
     const cell = (row, [key, , , fmt]) => (fmt ? fmt(row[key]) : row[key]);
 
@@ -357,7 +364,9 @@ router.get('/export/:type', verifyToken, authorize(ADMINS), async (req, res) => 
 
     const workbook = new ExcelJS.Workbook();
     workbook.created = new Date();
-    const sheet = workbook.addWorksheet(spec.title.slice(0, 31), { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+    const sheet = workbook.addWorksheet(spec.title.slice(0, 31), {
+      views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }]
+    });
     sheet.columns = spec.columns.map(([key, header, width]) => ({ key, header, width }));
     rows.forEach((row) => {
       const out = {};

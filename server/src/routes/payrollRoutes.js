@@ -15,7 +15,9 @@ const createPayrollSchema = z.object({
 });
 
 const TOTAL_WORK_DAYS = 22; // average working days in a month
-const employeeSelect = { select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } } };
+const employeeSelect = {
+  select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } }
+};
 
 async function calculatePayroll(employee, month, year) {
   const { start, end } = monthRange(month, year);
@@ -59,7 +61,8 @@ router.post('/generate', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
     const { month, year, employeeIds } = validation.data;
 
     const employees = await prisma.employee.findMany({
-      where: employeeIds && employeeIds.length > 0 ? { id: { in: employeeIds } } : { status: { in: ['ACTIVE', 'ON_LEAVE'] } }
+      where:
+        employeeIds && employeeIds.length > 0 ? { id: { in: employeeIds } } : { status: { in: ['ACTIVE', 'ON_LEAVE'] } }
     });
 
     const payrolls = [];
@@ -80,7 +83,12 @@ router.post('/generate', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
       data: { userId: req.user.userId, action: `Generated payroll for ${month}/${year}`, ipAddress: req.ip }
     });
 
-    res.json({ message: `Generated ${payrolls.length} payroll records`, generated: payrolls.length, skipped, payrolls });
+    res.json({
+      message: `Generated ${payrolls.length} payroll records`,
+      generated: payrolls.length,
+      skipped,
+      payrolls
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to generate payroll', error: error.message });
   }

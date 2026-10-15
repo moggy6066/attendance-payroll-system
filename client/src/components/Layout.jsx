@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 const navItems = [
   { label: 'لوحة التحكم', path: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الموظفين', path: '/employees', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'الأقسام', path: '/departments', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'الحضور', path: '/attendance', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الإجازات', path: '/leave', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الرواتب', path: '/payroll', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
@@ -43,7 +44,7 @@ export default function Layout({ children }) {
             <p className="mt-2 text-sm text-slate-300">إدارة الموظفين والرواتب</p>
           </div>
 
-          <nav className="p-4 space-y-2"> 
+          <nav className="p-4 space-y-2">
             {filteredNav.map((item) => (
               <NavLink
                 key={item.path}

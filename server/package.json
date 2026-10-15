@@ -11,8 +11,11 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "generate": "prisma generate",
+    "validate": "prisma validate",
     "seed": "node src/seed.js",
     "test": "node --test test/*.test.js",
+    "test:api": "node --test --test-concurrency=1 test-api/*.test.js",
+    "test:coverage": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=src/** --test-coverage-lines=50 test/*.test.js test-api/*.test.js",
     "mark-absences": "node -e \"require('dotenv').config();const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();require('./src/services/absence').runAbsenceJob(p).then(r=>{console.log(JSON.stringify(r,null,1));return p.$disconnect()})\"",
     "check-duplicates": "node scripts/attendance-duplicates.js",
     "fix-duplicates": "node scripts/attendance-duplicates.js --fix"

@@ -37,7 +37,9 @@ function fakePrisma({ settings = {}, employees = [], attendance = [], leaves = [
     attendance: {
       findMany: async ({ where }) => db.attendance.filter((a) => sameDay(a.date, where.date)),
       findUnique: async ({ where }) =>
-        db.attendance.find((a) => a.employeeId === where.employeeId_date.employeeId && sameDay(a.date, where.employeeId_date.date)) || null,
+        db.attendance.find(
+          (a) => a.employeeId === where.employeeId_date.employeeId && sameDay(a.date, where.employeeId_date.date)
+        ) || null,
       create: async ({ data }) => {
         const row = { id: `a${db.attendance.length}`, ...data };
         db.attendance.push(row);
@@ -50,19 +52,30 @@ function fakePrisma({ settings = {}, employees = [], attendance = [], leaves = [
           }
         }
       },
-      update: async ({ where, data }) => Object.assign(db.attendance.find((a) => a.id === where.id), data)
+      update: async ({ where, data }) =>
+        Object.assign(
+          db.attendance.find((a) => a.id === where.id),
+          data
+        )
     },
     leaveRequest: {
       findMany: async ({ where }) =>
         db.leaves.filter(
-          (l) => l.status === where.status && where.employeeId.in.includes(l.employeeId) && l.startDate <= where.startDate.lte && l.endDate >= where.endDate.gte
+          (l) =>
+            l.status === where.status &&
+            where.employeeId.in.includes(l.employeeId) &&
+            l.startDate <= where.startDate.lte &&
+            l.endDate >= where.endDate.gte
         )
     }
   };
 }
 
 const D = parseDay;
-const calendar = (weekend = '5,6', holidays = '') => ({ weekend: parseWeekendDays(weekend), holidays: parseHolidays(holidays) });
+const calendar = (weekend = '5,6', holidays = '') => ({
+  weekend: parseWeekendDays(weekend),
+  holidays: parseHolidays(holidays)
+});
 const emp = (id, extra = {}) => ({ id, status: 'ACTIVE', hireDate: D('2026-01-01'), ...extra });
 
 test('weekend and holiday parsing', () => {
@@ -81,13 +94,23 @@ test('isWorkingDay skips Friday/Saturday and holidays', () => {
 });
 
 test('eachDay is inclusive', () => {
-  assert.deepEqual(eachDay(D('2026-10-01'), D('2026-10-03')).map(formatDay), ['2026-10-01', '2026-10-02', '2026-10-03']);
+  assert.deepEqual(eachDay(D('2026-10-01'), D('2026-10-03')).map(formatDay), [
+    '2026-10-01',
+    '2026-10-02',
+    '2026-10-03'
+  ]);
 });
 
 test('markAbsencesForDay: absent, on leave, already recorded, not hired yet, terminated', async () => {
   const day = D('2026-10-04');
   const prisma = fakePrisma({
-    employees: [emp('present'), emp('missing'), emp('leave'), emp('new', { hireDate: D('2026-10-10') }), emp('gone', { status: 'TERMINATED' })],
+    employees: [
+      emp('present'),
+      emp('missing'),
+      emp('leave'),
+      emp('new', { hireDate: D('2026-10-10') }),
+      emp('gone', { status: 'TERMINATED' })
+    ],
     attendance: [{ employeeId: 'present', date: day, status: 'PRESENT' }],
     leaves: [{ employeeId: 'leave', status: 'APPROVED', startDate: D('2026-10-04'), endDate: D('2026-10-05') }]
   });
@@ -123,7 +146,11 @@ test('runAbsenceJob: marks working days from tracking start to yesterday only', 
   const r = await runAbsenceJob(prisma, { today: D('2026-10-04') });
   // 29 Sep (Tue) .. 3 Oct (Sat): Tue, Wed, Thu are working days
   assert.equal(r.absent, 3);
-  assert.deepEqual(prisma.db.attendance.map((a) => formatDay(a.date)).sort(), ['2026-09-29', '2026-09-30', '2026-10-01']);
+  assert.deepEqual(prisma.db.attendance.map((a) => formatDay(a.date)).sort(), [
+    '2026-09-29',
+    '2026-09-30',
+    '2026-10-01'
+  ]);
   assert.ok(!prisma.db.attendance.some((a) => formatDay(a.date) === '2026-10-04'), 'today must not be marked');
 });
 

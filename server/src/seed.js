@@ -11,14 +11,7 @@ const defaultRoles = [
   { name: 'EMPLOYEE', description: 'Employee self service' }
 ];
 
-const defaultDepartments = [
-  'Human Resources',
-  'Finance',
-  'Operations',
-  'Sales',
-  'IT',
-  'Management'
-];
+const defaultDepartments = ['Human Resources', 'Finance', 'Operations', 'Sales', 'IT', 'Management'];
 
 const employeeNames = [
   'Mohammed Al-Harbi',
@@ -90,7 +83,12 @@ async function seedUsers(users) {
         hireDate: new Date('2020-01-01'),
         shiftStart: '08:00',
         shiftEnd: '17:00',
-        jobTitle: user.role === 'SUPER_ADMIN' ? 'Super Administrator' : user.role === 'ADMIN' ? 'System Administrator' : 'Employee',
+        jobTitle:
+          user.role === 'SUPER_ADMIN'
+            ? 'Super Administrator'
+            : user.role === 'ADMIN'
+              ? 'System Administrator'
+              : 'Employee',
         status: 'ACTIVE',
         departmentId: (await prisma.department.findFirst({ where: { name: 'Management' } })).id
       }
@@ -131,12 +129,19 @@ async function seedEmployees(demoPassword) {
         email,
         address: `الرياض - حي ${i + 1}`,
         departmentId: dep.id,
-        jobTitle: ['HR Specialist', 'Accountant', 'Operations Coordinator', 'Sales Representative', 'Software Engineer', 'Manager'][i % 6],
+        jobTitle: [
+          'HR Specialist',
+          'Accountant',
+          'Operations Coordinator',
+          'Sales Representative',
+          'Software Engineer',
+          'Manager'
+        ][i % 6],
         salary: 3500 + i * 220,
-        hireDate: new Date(2021, (i % 12), (i % 28) + 1),
+        hireDate: new Date(2021, i % 12, (i % 28) + 1),
         shiftStart: '08:00',
         shiftEnd: '17:00',
-        status: i % 5 === 0 ? 'ON_LEAVE' : 'ACTIVE',
+        status: i % 5 === 0 ? 'ON_LEAVE' : 'ACTIVE'
       }
     });
 
@@ -229,14 +234,32 @@ async function main() {
   await seedDepartments();
   await seedSettings();
   await seedUsers([
-    { email: config.admin.email, username: 'superadmin', password: config.admin.password, role: 'SUPER_ADMIN', fullName: 'Super Admin' }
+    {
+      email: config.admin.email,
+      username: 'superadmin',
+      password: config.admin.password,
+      role: 'SUPER_ADMIN',
+      fullName: 'Super Admin'
+    }
   ]);
 
   if (config.demo) {
     console.log('[seed] SEED_DEMO=true: adding demo users, employees and sample attendance (development only).');
     await seedUsers([
-      { email: 'admin@company.com', username: 'admin', password: config.demoPassword, role: 'ADMIN', fullName: 'Admin User' },
-      { email: 'employee@company.com', username: 'employee', password: config.demoPassword, role: 'EMPLOYEE', fullName: 'Employee User' }
+      {
+        email: 'admin@company.com',
+        username: 'admin',
+        password: config.demoPassword,
+        role: 'ADMIN',
+        fullName: 'Admin User'
+      },
+      {
+        email: 'employee@company.com',
+        username: 'employee',
+        password: config.demoPassword,
+        role: 'EMPLOYEE',
+        fullName: 'Employee User'
+      }
     ]);
     await seedEmployees(config.demoPassword);
     await seedAttendance();

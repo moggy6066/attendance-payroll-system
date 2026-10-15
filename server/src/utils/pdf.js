@@ -25,9 +25,17 @@ function splitRuns(input) {
   const resolved = types.map((t, i) => {
     if (t !== 'N') return t;
     let prev = null;
-    for (let j = i - 1; j >= 0; j -= 1) if (types[j] !== 'N') { prev = types[j]; break; }
+    for (let j = i - 1; j >= 0; j -= 1)
+      if (types[j] !== 'N') {
+        prev = types[j];
+        break;
+      }
     let next = null;
-    for (let j = i + 1; j < types.length; j += 1) if (types[j] !== 'N') { next = types[j]; break; }
+    for (let j = i + 1; j < types.length; j += 1)
+      if (types[j] !== 'N') {
+        next = types[j];
+        break;
+      }
     return prev === 'L' && next === 'L' ? 'L' : 'R';
   });
   const runs = [];
@@ -64,7 +72,13 @@ function tokens(text) {
 }
 
 function tokenWidth(doc, tok, size, bold) {
-  if (tok.space) return doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).widthOfString(' ') * tok.text.length;
+  if (tok.space)
+    return (
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(size)
+        .widthOfString(' ') * tok.text.length
+    );
   return doc.font(fontFor(tok, bold)).fontSize(size).widthOfString(tok.text);
 }
 
@@ -134,7 +148,10 @@ function renderTablePdf({ title, subtitle, columns, rows, footer }) {
 
   const pageFooter = () => {
     doc.fillColor('#64748b');
-    drawRtl(doc, `${footer || ''}  صفحة ${page}`, left, doc.page.height - doc.page.margins.bottom - 4, tableWidth, { size: 8, align: 'center' });
+    drawRtl(doc, `${footer || ''}  صفحة ${page}`, left, doc.page.height - doc.page.margins.bottom - 4, tableWidth, {
+      size: 8,
+      align: 'center'
+    });
     doc.fillColor('#000000');
   };
 
@@ -157,7 +174,12 @@ function renderTablePdf({ title, subtitle, columns, rows, footer }) {
       const v = c.value(row);
       drawRtl(doc, v === null || v === undefined ? '' : String(v), x + pad, y + 4, widths[i] - pad * 2, { size: 9 });
     });
-    doc.moveTo(left, y + rowH).lineTo(right, y + rowH).lineWidth(0.3).strokeColor('#cbd5e1').stroke();
+    doc
+      .moveTo(left, y + rowH)
+      .lineTo(right, y + rowH)
+      .lineWidth(0.3)
+      .strokeColor('#cbd5e1')
+      .stroke();
     y += rowH;
   });
   pageFooter();

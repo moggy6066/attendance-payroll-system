@@ -44,32 +44,43 @@ async function main() {
   }
 
   let deleted = 0;
-  await prisma.$transaction(async (tx) => {
-    for (const g of groups) {
-      const rows = await tx.$queryRaw`
+  await prisma.$transaction(
+    async (tx) => {
+      for (const g of groups) {
+        const rows = await tx.$queryRaw`
         SELECT id, "checkIn", "checkOut", status::text AS status, "lateMinutes", "overtimeMinutes"
         FROM "Attendance"
         WHERE "employeeId" = ${g.employeeId} AND "date" = ${g.day}::date
         ORDER BY ("checkIn" IS NULL), "createdAt"`;
-      const [keep, ...rest] = rows;
-      const checkIns = rows.map((r) => r.checkIn).filter(Boolean).sort((a, b) => a - b);
-      const checkOuts = rows.map((r) => r.checkOut).filter(Boolean).sort((a, b) => b - a);
-      const status = rows.map((r) => r.status).sort((a, b) => (RANK[b] || 0) - (RANK[a] || 0))[0];
-      await tx.attendance.update({
-        where: { id: keep.id },
-        data: {
-          checkIn: checkIns[0] || null,
-          checkOut: checkOuts[0] || null,
-          status,
-          lateMinutes: Math.min(...rows.map((r) => r.lateMinutes ?? 0)),
-          overtimeMinutes: Math.max(...rows.map((r) => r.overtimeMinutes ?? 0))
-        }
-      });
-      await tx.attendance.deleteMany({ where: { id: { in: rest.map((r) => r.id) } } });
-      deleted += rest.length;
-    }
-  }, { timeout: 120000 });
-  console.log(`\nMerged ${groups.length} groups, deleted ${deleted} duplicate rows. Re-run without --fix to confirm, then: npx prisma db push --accept-data-loss`);
+        const [keep, ...rest] = rows;
+        const checkIns = rows
+          .map((r) => r.checkIn)
+          .filter(Boolean)
+          .sort((a, b) => a - b);
+        const checkOuts = rows
+          .map((r) => r.checkOut)
+          .filter(Boolean)
+          .sort((a, b) => b - a);
+        const status = rows.map((r) => r.status).sort((a, b) => (RANK[b] || 0) - (RANK[a] || 0))[0];
+        await tx.attendance.update({
+          where: { id: keep.id },
+          data: {
+            checkIn: checkIns[0] || null,
+            checkOut: checkOuts[0] || null,
+            status,
+            lateMinutes: Math.min(...rows.map((r) => r.lateMinutes ?? 0)),
+            overtimeMinutes: Math.max(...rows.map((r) => r.overtimeMinutes ?? 0))
+          }
+        });
+        await tx.attendance.deleteMany({ where: { id: { in: rest.map((r) => r.id) } } });
+        deleted += rest.length;
+      }
+    },
+    { timeout: 120000 }
+  );
+  console.log(
+    `\nMerged ${groups.length} groups, deleted ${deleted} duplicate rows. Re-run without --fix to confirm, then: npx prisma db push --accept-data-loss`
+  );
 }
 
 main()

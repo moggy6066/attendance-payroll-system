@@ -3,7 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { signToken } = require('./utils/token');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('./middleware/auth');
 const { applySecurity, createLoginLimiter } = require('./middleware/security');
@@ -21,7 +21,9 @@ const reportRoutes = require('./routes/reportRoutes');
 dotenv.config();
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-  console.error('FATAL: JWT_SECRET is missing or too short (min 32 chars). Set it in server/.env — see server/.env.example.');
+  console.error(
+    'FATAL: JWT_SECRET is missing or too short (min 32 chars). Set it in server/.env — see server/.env.example.'
+  );
   process.exit(1);
 }
 
@@ -64,16 +66,7 @@ app.post('/api/auth/login', createLoginLimiter(), async (req, res) => {
       return res.status(403).json({ message: 'Account is not active.' });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role.name,
-        employeeId: user.employeeId,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const token = signToken(user);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -87,6 +80,7 @@ app.post('/api/auth/login', createLoginLimiter(), async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role.name,
+        forcePasswordChange: user.forcePasswordChange,
         employee: user.employee
       }
     });
@@ -107,14 +101,22 @@ app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN'
   try {
     const today = localDay();
     const weekStart = new Date(today.getTime() - 6 * 86400000);
-    const [employeeCount, todayAttendance, leavePending, latestPayroll, departments, weekAttendance] = await Promise.all([
-      prisma.employee.count({ where: { status: { in: ['ACTIVE', 'ON_LEAVE'] } } }),
-      prisma.attendance.groupBy({ by: ['status'], where: { date: today }, _count: { _all: true } }),
-      prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
-      prisma.payroll.findFirst({ orderBy: [{ year: 'desc' }, { generatedAt: 'desc' }], select: { month: true, year: true } }),
-      prisma.department.count(),
-      prisma.attendance.groupBy({ by: ['date'], where: { date: { gte: weekStart, lte: today }, status: { in: ['PRESENT', 'LATE'] } }, _count: { _all: true } })
-    ]);
+    const [employeeCount, todayAttendance, leavePending, latestPayroll, departments, weekAttendance] =
+      await Promise.all([
+        prisma.employee.count({ where: { status: { in: ['ACTIVE', 'ON_LEAVE'] } } }),
+        prisma.attendance.groupBy({ by: ['status'], where: { date: today }, _count: { _all: true } }),
+        prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
+        prisma.payroll.findFirst({
+          orderBy: [{ year: 'desc' }, { generatedAt: 'desc' }],
+          select: { month: true, year: true }
+        }),
+        prisma.department.count(),
+        prisma.attendance.groupBy({
+          by: ['date'],
+          where: { date: { gte: weekStart, lte: today }, status: { in: ['PRESENT', 'LATE'] } },
+          _count: { _all: true }
+        })
+      ]);
 
     const count = (status) => todayAttendance.find((a) => a.status === status)?._count._all || 0;
     const present = count('PRESENT');
@@ -125,7 +127,10 @@ app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN'
 
     let totalPayroll = 0;
     if (latestPayroll) {
-      const agg = await prisma.payroll.aggregate({ where: { month: latestPayroll.month, year: latestPayroll.year }, _sum: { netSalary: true } });
+      const agg = await prisma.payroll.aggregate({
+        where: { month: latestPayroll.month, year: latestPayroll.year },
+        _sum: { netSalary: true }
+      });
       totalPayroll = Number(agg._sum.netSalary || 0);
     }
 
@@ -191,7 +196,9 @@ app.put('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
     }
     if (body.weekend_days !== undefined) body.weekend_days = String(body.weekend_days).replace(/\s/g, '');
     if (body.holidays !== undefined) {
-      const items = String(body.holidays).split(/[\s,]+/).filter(Boolean);
+      const items = String(body.holidays)
+        .split(/[\s,]+/)
+        .filter(Boolean);
       const bad = items.filter((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d));
       if (bad.length) return res.status(400).json({ message: `Invalid holiday dates: ${bad.join(', ')}` });
       body.holidays = items.join(',');
@@ -203,9 +210,15 @@ app.put('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
       return res.status(400).json({ message: 'attendance_radius_meters must be a positive number' });
     }
     for (const [key, value] of Object.entries(body)) {
-      await prisma.setting.upsert({ where: { key }, update: { value: String(value) }, create: { key, value: String(value) } });
+      await prisma.setting.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) }
+      });
     }
-    await prisma.auditLog.create({ data: { userId: req.user.userId, action: `Updated settings: ${Object.keys(body).join(', ')}`, ipAddress: req.ip } });
+    await prisma.auditLog.create({
+      data: { userId: req.user.userId, action: `Updated settings: ${Object.keys(body).join(', ')}`, ipAddress: req.ip }
+    });
     const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
     return res.json(settings);
   } catch (error) {
@@ -213,12 +226,19 @@ app.put('/api/settings', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async
   }
 });
 
-app.use((err, req, res, next) => {
+// Express recognises an error handler by its 4 arguments, so `_next` must stay.
+app.use((err, req, res, _next) => {
   console.error(err);
   res.status(500).json({ message: 'Unexpected server error', error: err.message });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
-  startAbsenceScheduler(prisma);
-});
+// Start the HTTP server only when run directly (node src/index.js).
+// Tests import the app and listen on a random port themselves.
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+    startAbsenceScheduler(prisma);
+  });
+}
+
+module.exports = app;

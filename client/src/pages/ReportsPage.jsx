@@ -2,8 +2,23 @@ import { useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import {
-  ATTENDANCE_STATUS, Alert, Card, DataTable, LEAVE_STATUS, LEAVE_TYPES, MonthYearPicker, PageHeader, StatusBadge,
-  btnPrimary, btnSecondary, downloadFile, errorMessage, fmtMoney, inputClass, todayISO, useApi
+  ATTENDANCE_STATUS,
+  Alert,
+  Card,
+  DataTable,
+  LEAVE_STATUS,
+  LEAVE_TYPES,
+  MonthYearPicker,
+  PageHeader,
+  StatusBadge,
+  btnPrimary,
+  btnSecondary,
+  downloadFile,
+  errorMessage,
+  fmtMoney,
+  inputClass,
+  todayISO,
+  useApi
 } from '../components/ui';
 import StatCard from '../components/StatCard';
 
@@ -44,12 +59,21 @@ function DailyReport({ date }) {
           <StatCard title="بدون تسجيل" value={s.notRecorded} tone="slate" />
         </div>
       )}
-      <DataTable loading={loading} rows={data?.details} empty="لا توجد سجلات لهذا اليوم" columns={[
-        { label: 'الموظف', key: 'fullName' }, { label: 'الرقم', key: 'employeeNumber' }, { label: 'القسم', key: 'department' },
-        { label: 'الدخول', render: (r) => r.checkIn || '—' }, { label: 'الخروج', render: (r) => r.checkOut || '—' },
-        { label: 'التأخير', render: (r) => mins(r.lateMinutes) }, { label: 'إضافي', render: (r) => mins(r.overtimeMinutes) },
-        { label: 'الحالة', render: (r) => <StatusBadge map={ATTENDANCE_STATUS} value={r.status} /> }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={data?.details}
+        empty="لا توجد سجلات لهذا اليوم"
+        columns={[
+          { label: 'الموظف', key: 'fullName' },
+          { label: 'الرقم', key: 'employeeNumber' },
+          { label: 'القسم', key: 'department' },
+          { label: 'الدخول', render: (r) => r.checkIn || '—' },
+          { label: 'الخروج', render: (r) => r.checkOut || '—' },
+          { label: 'التأخير', render: (r) => mins(r.lateMinutes) },
+          { label: 'إضافي', render: (r) => mins(r.overtimeMinutes) },
+          { label: 'الحالة', render: (r) => <StatusBadge map={ATTENDANCE_STATUS} value={r.status} /> }
+        ]}
+      />
     </>
   );
 }
@@ -68,13 +92,26 @@ function EmployeesReport({ period }) {
           <StatCard title="إجمالي الوقت الإضافي" value={mins(t.totalOvertimeMinutes)} tone="green" />
         </div>
       )}
-      <DataTable loading={loading} rows={data?.rows} rowKey="employeeId" columns={[
-        { label: 'الموظف', key: 'fullName' }, { label: 'الرقم', key: 'employeeNumber' }, { label: 'القسم', key: 'department' },
-        { label: 'حضور', key: 'presentDays' }, { label: 'تأخير (أيام)', key: 'lateDays' },
-        { label: 'غياب', render: (r) => <span className={r.absentDays ? 'font-bold text-red-600' : ''}>{r.absentDays}</span> },
-        { label: 'إجازة', key: 'leaveDays' }, { label: 'دقائق التأخير', render: (r) => mins(r.totalLateMinutes) },
-        { label: 'إضافي', render: (r) => mins(r.totalOvertimeMinutes) }, { label: 'ساعات العمل', key: 'workedHours' }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={data?.rows}
+        rowKey="employeeId"
+        columns={[
+          { label: 'الموظف', key: 'fullName' },
+          { label: 'الرقم', key: 'employeeNumber' },
+          { label: 'القسم', key: 'department' },
+          { label: 'حضور', key: 'presentDays' },
+          { label: 'تأخير (أيام)', key: 'lateDays' },
+          {
+            label: 'غياب',
+            render: (r) => <span className={r.absentDays ? 'font-bold text-red-600' : ''}>{r.absentDays}</span>
+          },
+          { label: 'إجازة', key: 'leaveDays' },
+          { label: 'دقائق التأخير', render: (r) => mins(r.totalLateMinutes) },
+          { label: 'إضافي', render: (r) => mins(r.totalOvertimeMinutes) },
+          { label: 'ساعات العمل', key: 'workedHours' }
+        ]}
+      />
     </>
   );
 }
@@ -87,21 +124,33 @@ function MonthlyReport({ period }) {
       <Alert>{error}</Alert>
       {rows.length > 0 && (
         <Card className="mb-4">
-          <Bar data={{
-            labels: rows.map((r) => r.department),
-            datasets: [
-              { label: 'حضور', data: rows.map((r) => r.present), backgroundColor: '#10b981' },
-              { label: 'تأخير', data: rows.map((r) => r.late), backgroundColor: '#f59e0b' },
-              { label: 'غياب', data: rows.map((r) => r.absent), backgroundColor: '#ef4444' },
-              { label: 'إجازة', data: rows.map((r) => r.onLeave), backgroundColor: '#3b82f6' }
-            ]
-          }} options={{ responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }} />
+          <Bar
+            data={{
+              labels: rows.map((r) => r.department),
+              datasets: [
+                { label: 'حضور', data: rows.map((r) => r.present), backgroundColor: '#10b981' },
+                { label: 'تأخير', data: rows.map((r) => r.late), backgroundColor: '#f59e0b' },
+                { label: 'غياب', data: rows.map((r) => r.absent), backgroundColor: '#ef4444' },
+                { label: 'إجازة', data: rows.map((r) => r.onLeave), backgroundColor: '#3b82f6' }
+              ]
+            }}
+            options={{ responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }}
+          />
         </Card>
       )}
-      <DataTable loading={loading} rows={rows} rowKey="department" columns={[
-        { label: 'القسم', key: 'department' }, { label: 'حضور', key: 'present' }, { label: 'تأخير', key: 'late' },
-        { label: 'غياب', key: 'absent' }, { label: 'إجازة', key: 'onLeave' }, { label: 'إجمالي التأخير', render: (r) => mins(r.lateMinutes) }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={rows}
+        rowKey="department"
+        columns={[
+          { label: 'القسم', key: 'department' },
+          { label: 'حضور', key: 'present' },
+          { label: 'تأخير', key: 'late' },
+          { label: 'غياب', key: 'absent' },
+          { label: 'إجازة', key: 'onLeave' },
+          { label: 'إجمالي التأخير', render: (r) => mins(r.lateMinutes) }
+        ]}
+      />
     </>
   );
 }
@@ -118,11 +167,19 @@ function LeavesReport({ period }) {
           <StatCard title="مرفوضة" value={data.rejected} tone="red" />
         </div>
       )}
-      <DataTable loading={loading} rows={data?.details} empty="لا توجد إجازات في هذا الشهر" columns={[
-        { label: 'الموظف', key: 'fullName' }, { label: 'النوع', render: (r) => LEAVE_TYPES[r.type] },
-        { label: 'من', key: 'startDate' }, { label: 'إلى', key: 'endDate' }, { label: 'الأيام', key: 'days' },
-        { label: 'الحالة', render: (r) => <StatusBadge map={LEAVE_STATUS} value={r.status} /> }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={data?.details}
+        empty="لا توجد إجازات في هذا الشهر"
+        columns={[
+          { label: 'الموظف', key: 'fullName' },
+          { label: 'النوع', render: (r) => LEAVE_TYPES[r.type] },
+          { label: 'من', key: 'startDate' },
+          { label: 'إلى', key: 'endDate' },
+          { label: 'الأيام', key: 'days' },
+          { label: 'الحالة', render: (r) => <StatusBadge map={LEAVE_STATUS} value={r.status} /> }
+        ]}
+      />
     </>
   );
 }
@@ -140,11 +197,20 @@ function PayrollReport({ period }) {
           <StatCard title="متوسط الراتب" value={fmtMoney(data.averageSalary)} tone="blue" />
         </div>
       )}
-      <DataTable loading={loading} rows={data?.details} empty="لم يتم إنشاء رواتب هذا الشهر بعد" columns={[
-        { label: 'الموظف', key: 'fullName' }, { label: 'القسم', key: 'department' }, { label: 'الأساسي', render: (r) => fmtMoney(r.basicSalary) },
-        { label: 'غياب', key: 'absentDays' }, { label: 'الخصومات', render: (r) => fmtMoney(r.deductions) },
-        { label: 'الصافي', render: (r) => <b>{fmtMoney(r.netSalary)}</b> }, { label: 'الصرف', render: (r) => (r.paid ? 'نعم' : 'لا') }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={data?.details}
+        empty="لم يتم إنشاء رواتب هذا الشهر بعد"
+        columns={[
+          { label: 'الموظف', key: 'fullName' },
+          { label: 'القسم', key: 'department' },
+          { label: 'الأساسي', render: (r) => fmtMoney(r.basicSalary) },
+          { label: 'غياب', key: 'absentDays' },
+          { label: 'الخصومات', render: (r) => fmtMoney(r.deductions) },
+          { label: 'الصافي', render: (r) => <b>{fmtMoney(r.netSalary)}</b> },
+          { label: 'الصرف', render: (r) => (r.paid ? 'نعم' : 'لا') }
+        ]}
+      />
     </>
   );
 }
@@ -154,10 +220,21 @@ function DepartmentsReport() {
   return (
     <>
       <Alert>{error}</Alert>
-      <DataTable loading={loading} rows={data} rowKey="department" columns={[
-        { label: 'القسم', key: 'department' }, { label: 'عدد الموظفين النشطين', key: 'employeeCount' },
-        { label: 'الموظفين', render: (r) => <span className="block max-w-xl truncate">{r.employees.map((e) => e.fullName).join('، ')}</span> }
-      ]} />
+      <DataTable
+        loading={loading}
+        rows={data}
+        rowKey="department"
+        columns={[
+          { label: 'القسم', key: 'department' },
+          { label: 'عدد الموظفين النشطين', key: 'employeeCount' },
+          {
+            label: 'الموظفين',
+            render: (r) => (
+              <span className="block max-w-xl truncate">{r.employees.map((e) => e.fullName).join('، ')}</span>
+            )
+          }
+        ]}
+      />
     </>
   );
 }
@@ -188,15 +265,25 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader title="التقارير">
-        {tab === 'daily' && <input type="date" className={`${inputClass} w-44`} value={date} onChange={(e) => setDate(e.target.value)} />}
-        {tab !== 'daily' && tab !== 'departments' && <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />}
-        <button className={btnPrimary} onClick={() => exportReport('xlsx')} disabled={!!exporting}>{exporting === 'xlsx' ? 'جارٍ التصدير...' : 'تصدير Excel'}</button>
-        <button className={btnSecondary} onClick={() => exportReport('pdf')} disabled={!!exporting}>{exporting === 'pdf' ? 'جارٍ التصدير...' : 'تصدير PDF'}</button>
+        {tab === 'daily' && (
+          <input type="date" className={`${inputClass} w-44`} value={date} onChange={(e) => setDate(e.target.value)} />
+        )}
+        {tab !== 'daily' && tab !== 'departments' && (
+          <MonthYearPicker month={period.month} year={period.year} onChange={setPeriod} />
+        )}
+        <button className={btnPrimary} onClick={() => exportReport('xlsx')} disabled={!!exporting}>
+          {exporting === 'xlsx' ? 'جارٍ التصدير...' : 'تصدير Excel'}
+        </button>
+        <button className={btnSecondary} onClick={() => exportReport('pdf')} disabled={!!exporting}>
+          {exporting === 'pdf' ? 'جارٍ التصدير...' : 'تصدير PDF'}
+        </button>
       </PageHeader>
 
       <div className="mb-6 flex flex-wrap gap-2">
         {TABS.map(([key, label]) => (
-          <button key={key} className={tab === key ? btnPrimary : btnSecondary} onClick={() => setTab(key)}>{label}</button>
+          <button key={key} className={tab === key ? btnPrimary : btnSecondary} onClick={() => setTab(key)}>
+            {label}
+          </button>
         ))}
       </div>
 

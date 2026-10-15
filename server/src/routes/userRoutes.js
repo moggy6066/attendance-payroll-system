@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
+const { signToken } = require('../utils/token');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -21,7 +22,19 @@ const publicUser = {
   createdAt: true,
   updatedAt: true,
   role: { select: { name: true } },
-  employee: { select: { id: true, fullName: true, employeeNumber: true, jobTitle: true, phone: true, hireDate: true, shiftStart: true, shiftEnd: true, department: { select: { name: true } } } }
+  employee: {
+    select: {
+      id: true,
+      fullName: true,
+      employeeNumber: true,
+      jobTitle: true,
+      phone: true,
+      hireDate: true,
+      shiftStart: true,
+      shiftEnd: true,
+      department: { select: { name: true } }
+    }
+  }
 };
 
 const flatten = (u) => (u ? { ...u, role: u.role?.name } : u);
@@ -74,17 +87,25 @@ router.get('/me', verifyToken, async (req, res) => {
 router.put('/me/password', verifyToken, async (req, res) => {
   const schema = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(8) });
   const parsed = schema.safeParse(req.body || {});
-  if (!parsed.success) return res.status(400).json({ message: 'New password must be at least 8 characters', errors: parsed.error.flatten() });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ message: 'New password must be at least 8 characters', errors: parsed.error.flatten() });
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId }, include: { role: true } });
     if (!user) return res.status(404).json({ message: 'User not found' });
     const ok = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
     if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
-    await prisma.user.update({
+    if (await bcrypt.compare(parsed.data.newPassword, user.passwordHash)) {
+      return res.status(400).json({ message: 'New password must be different from the current one' });
+    }
+    const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 10), forcePasswordChange: false }
+      data: { passwordHash: await bcrypt.hash(parsed.data.newPassword, 10), forcePasswordChange: false },
+      include: { role: true }
     });
-    return res.json({ message: 'Password updated' });
+    // Fresh token without the password-change flag, so the user is not locked out.
+    return res.json({ message: 'Password updated', token: signToken(updated) });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to update password', error: error.message });
   }
@@ -129,7 +150,8 @@ router.put('/:id', verifyToken, authorize(['SUPER_ADMIN']), async (req, res) => 
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid data', errors: parsed.error.flatten() });
   const { password, role, status, email, ...rest } = parsed.data;
-  if (status && !STATUSES.includes(status)) return res.status(400).json({ message: `Invalid status. Allowed: ${STATUSES.join(', ')}` });
+  if (status && !STATUSES.includes(status))
+    return res.status(400).json({ message: `Invalid status. Allowed: ${STATUSES.join(', ')}` });
   try {
     const data = { ...rest };
     if (email) data.email = email.toLowerCase();
@@ -153,7 +175,10 @@ router.delete('/:id', verifyToken, authorize(['SUPER_ADMIN']), async (req, res) 
     return res.json({ message: 'User deleted' });
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ message: 'User not found' });
-    if (error.code === 'P2003') return res.status(409).json({ message: 'User has related records (login history, notifications, audit logs). Set status to INACTIVE instead.' });
+    if (error.code === 'P2003')
+      return res.status(409).json({
+        message: 'User has related records (login history, notifications, audit logs). Set status to INACTIVE instead.'
+      });
     return res.status(500).json({ message: 'Failed to delete user', error: error.message });
   }
 });

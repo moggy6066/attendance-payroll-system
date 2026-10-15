@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
+const { generateTempPassword } = require('../utils/password');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -19,8 +20,14 @@ const createEmployeeSchema = z.object({
   jobTitle: z.string(),
   salary: z.coerce.number().min(0),
   hireDate: z.string().min(10),
-  shiftStart: z.string().regex(/^\d{1,2}:\d{2}$/).default('08:00'),
-  shiftEnd: z.string().regex(/^\d{1,2}:\d{2}$/).default('17:00'),
+  shiftStart: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}$/)
+    .default('08:00'),
+  shiftEnd: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}$/)
+    .default('17:00'),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']).optional()
 });
 
@@ -125,7 +132,7 @@ router.post('/', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN']), async (req, r
     });
 
     const role = await prisma.role.findUnique({ where: { name: 'EMPLOYEE' } });
-    const tempPassword = Math.random().toString(36).slice(-10);
+    const tempPassword = generateTempPassword();
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const user = await prisma.user.create({

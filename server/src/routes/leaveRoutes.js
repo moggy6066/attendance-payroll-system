@@ -18,7 +18,9 @@ const createLeaveSchema = z.object({
   employeeId: z.string().optional() // admins may file on behalf of an employee
 });
 
-const employeeSelect = { select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } } };
+const employeeSelect = {
+  select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } }
+};
 
 router.post('/', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   try {

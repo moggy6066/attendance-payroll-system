@@ -1,3 +1,7 @@
 {
+<<<<<<< HEAD
     "markdown.validate.enabled": true
+=======
+    "python.terminal.useEnvFile": true
+>>>>>>> ffc3a9aacfca1128fa1f3cd2f1ac989bb0d8d5ce
 }

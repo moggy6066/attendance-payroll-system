@@ -141,11 +141,21 @@ async function applyApprovedLeave(prisma, leave) {
     });
     if (!existing) {
       await prisma.attendance.create({
-        data: { employeeId: leave.employeeId, date: day, status: 'ON_LEAVE', lateMinutes: 0, overtimeMinutes: 0, deviceInfo: 'leave-approval' }
+        data: {
+          employeeId: leave.employeeId,
+          date: day,
+          status: 'ON_LEAVE',
+          lateMinutes: 0,
+          overtimeMinutes: 0,
+          deviceInfo: 'leave-approval'
+        }
       });
       created += 1;
     } else if (existing.status === 'ABSENT') {
-      await prisma.attendance.update({ where: { id: existing.id }, data: { status: 'ON_LEAVE', deviceInfo: 'leave-approval' } });
+      await prisma.attendance.update({
+        where: { id: existing.id },
+        data: { status: 'ON_LEAVE', deviceInfo: 'leave-approval' }
+      });
       converted += 1;
     }
   }
@@ -161,7 +171,8 @@ function startAbsenceScheduler(prisma, { intervalMs = 60 * 60 * 1000, logger = c
   const tick = async () => {
     try {
       const r = await runAbsenceJob(prisma);
-      if (r.absent || r.onLeave) logger.log(`[absence-job] ${r.from}..${r.to}: ${r.absent} absent, ${r.onLeave} on leave`);
+      if (r.absent || r.onLeave)
+        logger.log(`[absence-job] ${r.from}..${r.to}: ${r.absent} absent, ${r.onLeave} on leave`);
     } catch (error) {
       logger.error('[absence-job] failed:', error.message);
     }

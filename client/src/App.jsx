@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
+import DepartmentsPage from './pages/DepartmentsPage';
 import AttendancePage from './pages/AttendancePage';
 import LeavePage from './pages/LeavePage';
 import PayrollPage from './pages/PayrollPage';
@@ -40,13 +41,49 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/employees" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><EmployeesPage /></ProtectedRoute>} />
+                <Route
+                  path="/employees"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <EmployeesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/departments"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <DepartmentsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/leave" element={<LeavePage />} />
                 <Route path="/payroll" element={<PayrollPage />} />
-                <Route path="/users" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><UsersPage /></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><ReportsPage /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}><SettingsPage /></ProtectedRoute>} />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <UsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

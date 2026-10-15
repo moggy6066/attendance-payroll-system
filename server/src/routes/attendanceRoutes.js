@@ -203,7 +203,9 @@ router.get('/', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), async (req, re
 
     const attendance = await prisma.attendance.findMany({
       where: filters,
-      include: { employee: { select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } } } },
+      include: {
+        employee: { select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } } }
+      },
       orderBy: [{ date: 'desc' }, { checkIn: 'asc' }],
       take: 1000
     });
@@ -223,7 +225,8 @@ router.post('/mark-absences', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), 
     if (!date) return res.json(await runAbsenceJob(prisma));
     const day = parseDay(date);
     if (!day) return res.status(400).json({ message: 'date must be YYYY-MM-DD' });
-    if (day >= localDay()) return res.status(400).json({ message: 'Only past days can be marked (the day is still running).' });
+    if (day >= localDay())
+      return res.status(400).json({ message: 'Only past days can be marked (the day is still running).' });
     const calendar = await loadCalendar(prisma);
     return res.json(await markAbsencesForDay(prisma, day, calendar));
   } catch (error) {

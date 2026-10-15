@@ -75,7 +75,13 @@ export function PageHeader({ title, subtitle, children }) {
 }
 
 export function Card({ children, className = '' }) {
-  return <div className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-700 dark:bg-slate-800 ${className}`}>{children}</div>;
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-700 dark:bg-slate-800 ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function Alert({ type = 'error', children, onClose }) {
@@ -106,7 +112,9 @@ const BADGE_TONES = {
 };
 
 export function Badge({ tone = 'slate', children }) {
-  return <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${BADGE_TONES[tone]}`}>{children}</span>;
+  return (
+    <span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${BADGE_TONES[tone]}`}>{children}</span>
+  );
 }
 
 export const ATTENDANCE_STATUS = {
@@ -116,9 +124,23 @@ export const ATTENDANCE_STATUS = {
   ON_LEAVE: ['إجازة', 'blue']
 };
 export const LEAVE_TYPES = { ANNUAL: 'سنوية', SICK: 'مرضية', EMERGENCY: 'طارئة', UNPAID: 'بدون راتب' };
-export const LEAVE_STATUS = { PENDING: ['قيد المراجعة', 'amber'], APPROVED: ['موافق عليها', 'green'], REJECTED: ['مرفوضة', 'red'] };
-export const EMPLOYEE_STATUS = { ACTIVE: ['نشط', 'green'], INACTIVE: ['غير نشط', 'slate'], ON_LEAVE: ['في إجازة', 'blue'], TERMINATED: ['منتهي الخدمة', 'red'] };
-export const USER_STATUS = { ACTIVE: ['نشط', 'green'], INACTIVE: ['معطل', 'slate'], LOCKED: ['مقفل', 'red'], PENDING: ['معلق', 'amber'] };
+export const LEAVE_STATUS = {
+  PENDING: ['قيد المراجعة', 'amber'],
+  APPROVED: ['موافق عليها', 'green'],
+  REJECTED: ['مرفوضة', 'red']
+};
+export const EMPLOYEE_STATUS = {
+  ACTIVE: ['نشط', 'green'],
+  INACTIVE: ['غير نشط', 'slate'],
+  ON_LEAVE: ['في إجازة', 'blue'],
+  TERMINATED: ['منتهي الخدمة', 'red']
+};
+export const USER_STATUS = {
+  ACTIVE: ['نشط', 'green'],
+  INACTIVE: ['معطل', 'slate'],
+  LOCKED: ['مقفل', 'red'],
+  PENDING: ['معلق', 'amber']
+};
 export const ROLES = { SUPER_ADMIN: 'مدير عام', ADMIN: 'مسؤول', EMPLOYEE: 'موظف' };
 
 export function StatusBadge({ map, value }) {
@@ -173,11 +195,17 @@ export function DataTable({ columns, rows, loading, empty = 'لا توجد بي�
 export function Modal({ open, title, onClose, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800" onClick={(e) => e.stopPropagation()}>
+    // Backdrop: a click on the backdrop itself (not inside the dialog) or Escape closes it.
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    >
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">{title}</h2>
-          <button onClick={onClose} className="text-2xl leading-none text-slate-400 hover:text-slate-700">
+          <button type="button" onClick={onClose} className="text-2xl leading-none text-slate-400 hover:text-slate-700">
             ×
           </button>
         </div>
@@ -198,22 +226,47 @@ export function Field({ label, children }) {
 
 export const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-900';
-export const btnPrimary = 'rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50';
+export const btnPrimary =
+  'rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50';
 export const btnSecondary =
   'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200';
-export const btnDanger = 'rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50';
+export const btnDanger =
+  'rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50';
 
 export function todayISO() {
-  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
   return p; // YYYY-MM-DD
 }
 
 export const fmtDate = (v) => (v ? String(v).slice(0, 10) : '—');
 export const fmtTime = (v) =>
-  v ? new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' }).format(new Date(v)) : '—';
-export const fmtMoney = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('ar-EG', { maximumFractionDigits: 2 }));
+  v
+    ? new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' }).format(
+        new Date(v)
+      )
+    : '—';
+export const fmtMoney = (v) =>
+  v === null || v === undefined ? '—' : Number(v).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
-export const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+export const MONTHS = [
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر'
+];
 
 export function MonthYearPicker({ month, year, onChange }) {
   const thisYear = new Date().getFullYear();
