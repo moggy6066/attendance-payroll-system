@@ -16,3 +16,5 @@ backups/
 client/test-results/
 client/playwright-report/
 client/coverage/
+
+attendance-payroll-system/
