@@ -8,3 +8,4 @@ client/playwright-report
 server/prisma/migrations
 *.md
 .github
+*.code-workspace
