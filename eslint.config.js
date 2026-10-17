@@ -21,6 +21,7 @@ module.exports = [
   {
     ignores: [
       '**/node_modules/**',
+      '.venv/**',
       '**/dist/**',
       '**/coverage/**',
       'client/test-results/**',
