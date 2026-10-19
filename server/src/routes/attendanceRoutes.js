@@ -4,6 +4,7 @@ const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
 const { localDay, parseDay, localMinutesOfDay, hhmmToMinutes } = require('../utils/date');
 const { runAbsenceJob, markAbsencesForDay, loadCalendar } = require('../services/absence');
+const { currentQrToken, verifyQrToken } = require('../utils/qrToken');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -23,6 +24,11 @@ function resolveEmployeeId(req, requested) {
   return requested || req.user.employeeId || null;
 }
 
+// When QR_REQUIRED=true, employees must send a valid (current) QR code to check in or out.
+function qrRejected(req, qrCode) {
+  return process.env.QR_REQUIRED === 'true' && req.user.role === 'EMPLOYEE' && !verifyQrToken(qrCode);
+}
+
 async function shiftFor(employee) {
   const settings = await prisma.setting.findMany({
     where: { key: { in: ['default_shift_start', 'default_shift_end'] } }
@@ -39,6 +45,10 @@ router.post('/check-in', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADM
     const validation = checkInOutSchema.safeParse(req.body || {});
     if (!validation.success) {
       return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
+    }
+
+    if (qrRejected(req, validation.data.qrCode)) {
+      return res.status(400).json({ message: 'الكود منتهي أو غير صالح، امسح الكود الظاهر الآن' });
     }
 
     const employeeId = resolveEmployeeId(req, validation.data.employeeId);
@@ -90,6 +100,10 @@ router.post('/check-out', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_AD
     const validation = checkInOutSchema.safeParse(req.body || {});
     if (!validation.success) {
       return res.status(400).json({ message: 'Invalid data', errors: validation.error.flatten() });
+    }
+
+    if (qrRejected(req, validation.data.qrCode)) {
+      return res.status(400).json({ message: 'الكود منتهي أو غير صالح، امسح الكود الظاهر الآن' });
     }
 
     const employeeId = resolveEmployeeId(req, validation.data.employeeId);
@@ -145,6 +159,12 @@ router.get('/today', verifyToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch attendance', error: error.message });
   }
+});
+
+// Rotating QR token (changes every 30 seconds) for the display screen. Admins only.
+router.get('/qr', verifyToken, authorize(['ADMIN', 'SUPER_ADMIN']), (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(currentQrToken());
 });
 
 router.get('/employee/:employeeId', verifyToken, authorize(['EMPLOYEE', 'ADMIN', 'SUPER_ADMIN']), async (req, res) => {

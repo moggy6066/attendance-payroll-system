@@ -10,6 +10,8 @@ import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import QrDisplayPage from './pages/QrDisplayPage';
+import ScanPage from './pages/ScanPage';
 import Layout from './components/Layout';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -33,6 +35,24 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      {/* QR attendance: full-screen pages without the sidebar layout */}
+      <Route
+        path="/qr"
+        element={
+          <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+            <QrDisplayPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/scan"
+        element={
+          <ProtectedRoute>
+            <ScanPage />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/*"
