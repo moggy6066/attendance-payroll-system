@@ -32,6 +32,17 @@ enum AttendanceStatus {
   ABSENT
   LATE
   ON_LEAVE
+  MISSION
+}
+
+enum PayType {
+  MONTHLY
+  DAILY
+}
+
+enum AdjustmentKind {
+  ADVANCE
+  DEDUCTION
 }
 
 enum LeaveType {
@@ -120,6 +131,9 @@ model Employee {
   hireDate       DateTime
   shiftStart     String?
   shiftEnd       String?
+  payType        PayType        @default(MONTHLY)
+  dailyRate      Decimal?       @db.Decimal(10, 2)
+  advances       Advance[]
   status         EmployeeStatus @default(ACTIVE)
   photoUrl       String?
   user           User?
@@ -174,22 +188,23 @@ model LeaveRequest {
 }
 
 model Payroll {
-  id              String   @id @default(cuid())
-  employeeId      String
-  employee        Employee @relation(fields: [employeeId], references: [id])
-  month           String
-  year            Int
-  basicSalary     Decimal  @db.Decimal(10, 2)
-  presentDays     Int      @default(0)
-  absentDays      Int      @default(0)
-  overtimeHours   Decimal  @default(0) @db.Decimal(10, 2)
-  bonuses         Decimal  @default(0) @db.Decimal(10, 2)
-  lateDeductions  Decimal  @default(0) @db.Decimal(10, 2)
-  netSalary       Decimal  @db.Decimal(10, 2)
-  paid            Boolean  @default(false)
-  generatedAt     DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(cuid())
+  employeeId        String
+  employee          Employee @relation(fields: [employeeId], references: [id])
+  month             String
+  year              Int
+  basicSalary       Decimal  @db.Decimal(10, 2)
+  presentDays       Int      @default(0)
+  absentDays        Int      @default(0)
+  overtimeHours     Decimal  @default(0) @db.Decimal(10, 2)
+  bonuses           Decimal  @default(0) @db.Decimal(10, 2)
+  lateDeductions    Decimal  @default(0) @db.Decimal(10, 2)
+  advanceDeductions Decimal  @default(0) @db.Decimal(10, 2)
+  netSalary         Decimal  @db.Decimal(10, 2)
+  paid              Boolean  @default(false)
+  generatedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Notification {
@@ -244,4 +259,17 @@ model Shift {
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Advance {
+  id         String         @id @default(cuid())
+  employeeId String
+  employee   Employee       @relation(fields: [employeeId], references: [id])
+  date       DateTime       @db.Date
+  amount     Decimal        @db.Decimal(10, 2)
+  kind       AdjustmentKind @default(ADVANCE)
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  @@index([employeeId, date])
 }

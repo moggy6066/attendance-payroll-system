@@ -9,6 +9,7 @@ import PayrollPage from './pages/PayrollPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import ImportPage from './pages/ImportPage';
 import ProfilePage from './pages/ProfilePage';
 import QrDisplayPage from './pages/QrDisplayPage';
 import ScanPage from './pages/ScanPage';
@@ -85,6 +86,14 @@ export default function App() {
                   element={
                     <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
                       <UsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/import"
+                  element={
+                    <ProtectedRoute allow={['SUPER_ADMIN', 'ADMIN']}>
+                      <ImportPage />
                     </ProtectedRoute>
                   }
                 />

@@ -121,7 +121,8 @@ export const ATTENDANCE_STATUS = {
   PRESENT: ['حاضر', 'green'],
   LATE: ['متأخر', 'amber'],
   ABSENT: ['غائب', 'red'],
-  ON_LEAVE: ['إجازة', 'blue']
+  ON_LEAVE: ['إجازة', 'blue'],
+  MISSION: ['مأمورية', 'green']
 };
 export const LEAVE_TYPES = { ANNUAL: 'سنوية', SICK: 'مرضية', EMERGENCY: 'طارئة', UNPAID: 'بدون راتب' };
 export const LEAVE_STATUS = {

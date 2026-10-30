@@ -9,7 +9,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 const ADMINS = ['SUPER_ADMIN', 'ADMIN'];
 
-const STATUS_AR = { PRESENT: 'حاضر', LATE: 'متأخر', ABSENT: 'غائب', ON_LEAVE: 'إجازة' };
+const STATUS_AR = { PRESENT: 'حاضر', LATE: 'متأخر', ABSENT: 'غائب', ON_LEAVE: 'إجازة', MISSION: 'مأمورية' };
 const LEAVE_TYPE_AR = { ANNUAL: 'سنوية', SICK: 'مرضية', EMERGENCY: 'طارئة', UNPAID: 'بدون راتب' };
 const LEAVE_STATUS_AR = { PENDING: 'قيد المراجعة', APPROVED: 'موافق عليها', REJECTED: 'مرفوضة' };
 
