@@ -17,6 +17,7 @@ const leaveRoutes = require('./routes/leaveRoutes');
 const payrollRoutes = require('./routes/payrollRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const importRoutes = require('./routes/importRoutes');
 
 dotenv.config();
 
@@ -96,6 +97,7 @@ app.use('/api/leave-requests', leaveRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/import', importRoutes);
 
 app.get('/api/dashboard/summary', verifyToken, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']), async (req, res) => {
   try {

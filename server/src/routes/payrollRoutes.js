@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { verifyToken, authorize } = require('../middleware/auth');
 const { z } = require('zod');
 const { monthRange } = require('../utils/date');
+const { calculateNet } = require('../services/payrollCalc');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -14,7 +15,6 @@ const createPayrollSchema = z.object({
   employeeIds: z.array(z.string()).optional()
 });
 
-const TOTAL_WORK_DAYS = 22; // average working days in a month
 const employeeSelect = {
   select: { id: true, fullName: true, employeeNumber: true, department: { select: { name: true } } }
 };
@@ -26,15 +26,26 @@ async function calculatePayroll(employee, month, year) {
     where: { employeeId: employee.id, date: { gte: start, lte: end } }
   });
 
-  const presentDays = attendance.filter((a) => a.status === 'PRESENT' || a.status === 'LATE').length;
+  const isPaid = (a) => a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'MISSION';
+  const presentDays = attendance.filter(isPaid).length;
   const lateDays = attendance.filter((a) => a.status === 'LATE').length;
   const absentDays = attendance.filter((a) => a.status === 'ABSENT').length;
   const overtimeMinutes = attendance.reduce((acc, a) => acc + (a.overtimeMinutes || 0), 0);
 
+  const adjustments = await prisma.advance.findMany({
+    where: { employeeId: employee.id, date: { gte: start, lte: end } }
+  });
+  const advanceTotal = adjustments.reduce((acc, a) => acc + Number(a.amount), 0);
+
   const basicSalary = Number(employee.salary);
-  const dailyRate = basicSalary / TOTAL_WORK_DAYS;
-  const lateDeductions = lateDays * (dailyRate * 0.05) + absentDays * dailyRate;
-  const netSalary = Math.max(0, basicSalary - lateDeductions);
+  const result = calculateNet({
+    salary: basicSalary,
+    dailyRate: employee.dailyRate === null || employee.dailyRate === undefined ? null : Number(employee.dailyRate),
+    paidDays: presentDays,
+    lateDays,
+    absentDays,
+    advanceDeductions: advanceTotal
+  });
 
   return {
     employeeId: employee.id,
@@ -45,8 +56,9 @@ async function calculatePayroll(employee, month, year) {
     absentDays,
     overtimeHours: Math.round((overtimeMinutes / 60) * 100) / 100,
     bonuses: 0,
-    lateDeductions: Math.round(lateDeductions * 100) / 100,
-    netSalary: Math.round(netSalary * 100) / 100,
+    lateDeductions: result.lateDeductions,
+    advanceDeductions: result.advanceDeductions,
+    netSalary: result.netSalary,
     paid: false
   };
 }

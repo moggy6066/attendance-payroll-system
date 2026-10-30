@@ -9,6 +9,7 @@ const navItems = [
   { label: 'الإجازات', path: '/leave', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'الرواتب', path: '/payroll', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
   { label: 'المستخدمون', path: '/users', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { label: 'استيراد من إكسل', path: '/import', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'التقارير', path: '/reports', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'الإعدادات', path: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { label: 'الملف الشخصي', path: '/profile', roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] }
