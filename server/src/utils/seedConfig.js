@@ -17,7 +17,8 @@ function resolveSeedConfig(env = process.env) {
   const problems = [];
   if (!EMAIL_RE.test(email)) problems.push('ADMIN_EMAIL is missing or not a valid email address');
   if (password.length < 12) problems.push('ADMIN_PASSWORD is missing or shorter than 12 characters');
-  if (/change_me/i.test(password)) problems.push('ADMIN_PASSWORD still contains the CHANGE_ME placeholder');
+  if (/change[-_ ]?me|example|placeholder/i.test(password))
+    problems.push('ADMIN_PASSWORD still looks like a placeholder (CHANGE_ME / change-me / example)');
   if (problems.length) {
     const error = new Error(
       `Seed aborted:\n  - ${problems.join('\n  - ')}\nSet them in .env (see .env.docker.example / server/.env.example).`

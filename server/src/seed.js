@@ -80,7 +80,8 @@ async function seedUsers(users) {
         email: user.email,
         phone: '+966500000000',
         salary: user.role === 'SUPER_ADMIN' ? 20000 : user.role === 'ADMIN' ? 15000 : 6500,
-        hireDate: new Date('2020-01-01'),
+        // Demo accounts look established; the real first admin counts from the install day.
+        hireDate: user.demo ? new Date('2020-01-01') : localDay(),
         shiftStart: '08:00',
         shiftEnd: '17:00',
         jobTitle:
@@ -162,7 +163,7 @@ async function seedEmployees(demoPassword) {
   }
 }
 
-async function seedSettings() {
+async function seedSettings(demo) {
   const settings = [
     { key: 'company_name', value: 'نظام الحضور والانصراف', description: 'Company name' },
     { key: 'attendance_radius_meters', value: '120', description: 'GPS attendance radius in meters' },
@@ -174,7 +175,8 @@ async function seedSettings() {
     { key: 'holidays', value: '', description: 'Public holidays, comma-separated YYYY-MM-DD' },
     {
       key: 'absence_tracking_start',
-      value: new Date(localDay().getTime() - 10 * 86400000).toISOString().slice(0, 10),
+      // Real installs start tracking today (no invented absences). Demo data covers the last 10 days.
+      value: new Date(localDay().getTime() - (demo ? 10 : 0) * 86400000).toISOString().slice(0, 10),
       description: 'First day the automatic absence job may mark'
     }
   ];
@@ -232,7 +234,7 @@ async function main() {
 
   await seedRoles();
   await seedDepartments();
-  await seedSettings();
+  await seedSettings(config.demo);
   await seedUsers([
     {
       email: config.admin.email,
@@ -251,6 +253,7 @@ async function main() {
         username: 'admin',
         password: config.demoPassword,
         role: 'ADMIN',
+        demo: true,
         fullName: 'Admin User'
       },
       {
@@ -258,6 +261,7 @@ async function main() {
         username: 'employee',
         password: config.demoPassword,
         role: 'EMPLOYEE',
+        demo: true,
         fullName: 'Employee User'
       }
     ]);

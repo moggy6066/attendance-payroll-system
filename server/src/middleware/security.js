@@ -13,6 +13,12 @@ function parseTrustProxy(value) {
 }
 
 function applySecurity(app, env = process.env) {
+  if (String(env.CLIENT_URL || '').startsWith('https://') && parseTrustProxy(env.TRUST_PROXY) === 1) {
+    console.warn(
+      '[security] CLIENT_URL is https:// but TRUST_PROXY=1. Behind the Caddy https profile set TRUST_PROXY=2, ' +
+        'otherwise all users share one IP and the login rate limit can lock everyone out.'
+    );
+  }
   app.disable('x-powered-by');
   app.set('trust proxy', parseTrustProxy(env.TRUST_PROXY));
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));

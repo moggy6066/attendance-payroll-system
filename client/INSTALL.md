@@ -55,11 +55,10 @@ src/
     └── NotFoundPage.jsx
 ```
 
-## Default Accounts
+## First account
 
-- **Super Admin**: superadmin@company.com / SuperAdmin@123
-- **Admin**: admin@company.com / Admin@123
-- **Employee**: employee@company.com / Employee@123
+There are no default accounts. The seed creates the first SUPER_ADMIN from `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` in `server/.env` (min. 12 characters). Demo accounts: development only, `SEED_DEMO=true`.
 
 ## Features
 

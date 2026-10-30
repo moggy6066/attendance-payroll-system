@@ -101,19 +101,11 @@ npm run dev
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:5000
 
-## حسابات الاختبار الافتراضية
+## حساب المدير الأول
 
-### Super Admin
-- البريد: `superadmin@company.com`
-- كلمة المرور: `SuperAdmin@123`
-
-### Admin
-- البريد: `admin@company.com`
-- كلمة المرور: `Admin@123`
-
-### Employee
-- البريد: `employee@company.com`
-- كلمة المرور: `Employee@123`
+لا توجد حسابات افتراضية. يُنشئ سكربت البيانات الأولية (`node src/seed.js`) مدير النظام الأول
+من `ADMIN_EMAIL` و`ADMIN_PASSWORD` (12 حرفًا على الأقل) في `server/.env`.
+لإنشاء حسابات تجريبية في بيئة التطوير فقط: `SEED_DEMO=true` (كلمة مرورها `DEMO_PASSWORD`، الافتراضي في `server/.env.example`).
 
 ## استكشاف الأخطاء
 

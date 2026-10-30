@@ -14,7 +14,7 @@ sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 64)/" .env
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
 sed -i "s/^RUN_SEED=.*/RUN_SEED=true/" .env        # create roles + initial users once
 sed -i "s/^ADMIN_EMAIL=.*/ADMIN_EMAIL=you@yourcompany.com/" .env
-sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$(openssl rand -base64 18)/" .env
+sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=$(openssl rand -hex 12)Aa1/" .env
 grep ^ADMIN_PASSWORD .env                          # note it down, then remove it from .env after the first login
 
 docker compose up -d --build
