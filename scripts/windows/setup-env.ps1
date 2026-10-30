@@ -66,6 +66,10 @@ if (-not $ExistingDatabase) {
     Set-Val "ADMIN_EMAIL" $AdminEmail
     Set-Val "ADMIN_PASSWORD" $adminPw
     Set-Val "RUN_SEED" "true"
+    # New installs require the rotating QR scan (show http://<ip>:<port>/qr-display at the workplace).
+    Set-Val "QR_REQUIRED" "true"
+    $qr = Get-Val "QR_SECRET"
+    if (-not $qr) { Set-Val "QR_SECRET" (New-Hex 32) }
     $script:printPw = $adminPw
   }
 }
@@ -77,5 +81,6 @@ Write-Host "Employees open:  http://${LanIp}:$Port"
 if ($script:printPw) {
   Write-Host ""
   Write-Host "First login:  $AdminEmail  /  $script:printPw   (shown once - change it on the Profile page)"
+  Write-Host "QR check-in is ON: keep http://${LanIp}:$Port/qr-display open on a screen at the workplace (set QR_REQUIRED=false in .env to turn it off)."
   Write-Host "After the first start run:  powershell -File scripts\windows\finish-install.ps1  (turns RUN_SEED off and clears the password from .env)"
 }
