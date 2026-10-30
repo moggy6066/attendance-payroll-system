@@ -6,7 +6,8 @@
 param(
   [string]$LanIp = "",
   [switch]$ExistingDatabase,   # old Docker database volume: keep its password "postgres" for now
-  [int]$Port = 8080
+  [int]$Port = 8080,
+  [string]$AdminEmail = ""   # new install: email of the first SUPER_ADMIN
 )
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -55,7 +56,31 @@ Set-Val "CLIENT_URL" "http://${LanIp}:$Port"
 Set-Val "SITE_ADDRESS" ""
 Set-Val "APP_TIMEZONE" "Africa/Cairo"
 
+# New install: prepare the first SUPER_ADMIN so the seed runs once on first start.
+if (-not $ExistingDatabase) {
+  $seeded = Get-Val "ADMIN_PASSWORD"
+  if (-not $seeded -or $seeded -match "change|example") {
+    if (-not $AdminEmail) { $AdminEmail = Read-Host "Email for the first admin account" }
+    if ($AdminEmail -notmatch "^[^@\s]+@[^@\s]+\.[^@\s]+$") { throw "Invalid email. Pass -AdminEmail you@company.com" }
+    $adminPw = (New-Hex 12) + "Aa1"
+    Set-Val "ADMIN_EMAIL" $AdminEmail
+    Set-Val "ADMIN_PASSWORD" $adminPw
+    Set-Val "RUN_SEED" "true"
+    # New installs require the rotating QR scan (show http://<ip>:<port>/qr-display at the workplace).
+    Set-Val "QR_REQUIRED" "true"
+    $qr = Get-Val "QR_SECRET"
+    if (-not $qr) { Set-Val "QR_SECRET" (New-Hex 32) }
+    $script:printPw = $adminPw
+  }
+}
+
 # UTF-8 without BOM, LF line endings (docker compose reads it reliably)
 [System.IO.File]::WriteAllText($envFile, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ""
 Write-Host "Employees open:  http://${LanIp}:$Port"
+if ($script:printPw) {
+  Write-Host ""
+  Write-Host "First login:  $AdminEmail  /  $script:printPw   (shown once - change it on the Profile page)"
+  Write-Host "QR check-in is ON: keep http://${LanIp}:$Port/qr-display open on a screen at the workplace (set QR_REQUIRED=false in .env to turn it off)."
+  Write-Host "After the first start run:  powershell -File scripts\windows\finish-install.ps1  (turns RUN_SEED off and clears the password from .env)"
+}

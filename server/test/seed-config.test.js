@@ -30,3 +30,9 @@ test('demo data only outside production', () => {
   assert.equal(prod.demo, false);
   assert.equal(prod.warnings.length, 1);
 });
+
+test('rejects the placeholder passwords shipped in the example files', () => {
+  for (const p of ['change-me-12-chars-min', 'ChangeMeToAStrongPassword123', 'CHANGE_ME_to_a_strong_password']) {
+    assert.throws(() => resolveSeedConfig({ ADMIN_EMAIL: 'a@b.co', ADMIN_PASSWORD: p }), /placeholder/);
+  }
+});
