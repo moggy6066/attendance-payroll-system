@@ -85,7 +85,7 @@ node src/seed.js
 ```
 
 ستظهر لك هذه الرسالة عند النجاح:
-```
+```text
 Database seed completed successfully.
 ```
 
@@ -98,8 +98,8 @@ npm run dev
 ```
 
 سيبدأ التطبيق على:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000
+- **Frontend**: <http://localhost:5173>
+- **Backend API**: <http://localhost:5000>
 
 ## حساب المدير الأول
 
