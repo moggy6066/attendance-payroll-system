@@ -1,6 +1,7 @@
 # نظام الحضور والانصراف - دليل الإعداد
 
 ## المتطلبات
+
 - Node.js (v16 أو أعلى)
 - npm أو yarn
 - PostgreSQL (v12 أو أعلى)
@@ -8,6 +9,7 @@
 ## خطوات الإعداد
 
 ### 1. استنساخ المشروع
+
 ```bash
 git clone https://github.com/moggy6066/attendance-payroll-system.git
 cd attendance-payroll-system
@@ -16,16 +18,19 @@ cd attendance-payroll-system
 ### 2. تثبيت المكتبات
 
 #### الخطوة الأولى: تثبيت المكتبات الأساسية
+
 ```bash
 npm install
 ```
 
 #### الخطوة الثانية: تثبيت مكتبات Frontend
+
 ```bash
 npm install --workspace client
 ```
 
 #### الخطوة الثالثة: تثبيت مكتبات Backend
+
 ```bash
 npm install --workspace server
 ```
@@ -33,6 +38,7 @@ npm install --workspace server
 ### 3. إعداد قاعدة البيانات
 
 #### تأكد من تشغيل PostgreSQL
+
 ```bash
 # على Windows
 net start postgresql-x64-15
@@ -45,6 +51,7 @@ sudo systemctl start postgresql
 ```
 
 #### إنشاء قاعدة البيانات
+
 ```bash
 # الاتصال بـ PostgreSQL
 psql -U postgres
@@ -62,6 +69,7 @@ cp .env.example .env
 ```
 
 تأكد من أن ملف `.env` يحتوي على:
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hr_attendance_db?schema=public"
 JWT_SECRET="QwErTy123!@#HRAttendanceSystemSecureKey"
@@ -85,7 +93,7 @@ node src/seed.js
 ```
 
 ستظهر لك هذه الرسالة عند النجاح:
-```text
+```
 Database seed completed successfully.
 ```
 
@@ -98,8 +106,8 @@ npm run dev
 ```
 
 سيبدأ التطبيق على:
-- **Frontend**: <http://localhost:5173>
-- **Backend API**: <http://localhost:5000>
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5000
 
 ## حساب المدير الأول
 
@@ -110,12 +118,14 @@ npm run dev
 ## استكشاف الأخطاء
 
 ### خطأ: "ECONNREFUSED" أو PostgreSQL غير متصل
+
 ```bash
 # تحقق من تشغيل PostgreSQL
 psql -U postgres -c "SELECT 1"
 ```
 
 ### خطأ: "Cannot find module"
+
 ```bash
 # أعد تثبيت المكتبات
 rm -rf node_modules client/node_modules server/node_modules
@@ -125,12 +135,14 @@ npm install --workspace server
 ```
 
 ### خطأ: DATABASE_URL غير صحيح
+
 ```bash
 # تحقق من بيانات الاتصال في server/.env
 psql $DATABASE_URL -c "SELECT 1"
 ```
 
 ### خطأ: Prisma Migration
+
 ```bash
 cd server
 npx prisma migrate reset
@@ -138,6 +150,7 @@ node src/seed.js
 ```
 
 ## إيقاف التطبيق
+
 ```bash
 Ctrl + C
 ```
@@ -166,6 +179,7 @@ Ctrl + C
 ## الدعم
 
 إذا واجهت أي مشاكل، تحقق من:
+
 1. نسخة Node.js (`node --version`)
 2. تشغيل PostgreSQL (`pg_isready`)
 3. ملف `.env` في مجلد `server`
